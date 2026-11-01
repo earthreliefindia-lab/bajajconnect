@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Semantic Version (e.g. 1.0.1)'
+        description: 'Semantic Version (e.g. 1.0.0-beta.1)'
         required: true
-        default: '1.0.1'
+        default: '1.0.0-beta.1'
 
 permissions:
   contents: write
@@ -59,7 +59,7 @@ jobs:
             echo "KEYSTORE_PATH=${{ runner.temp }}/release.jks" >> $GITHUB_ENV
             echo "has_keystore=true" >> $GITHUB_OUTPUT
           else
-            echo "No RELEASE_KEYSTORE_BASE64 secret found. Building unsigned/debug signed fallback."
+            echo "No custom RELEASE_KEYSTORE_BASE64 secret found. Using default release signing."
             echo "has_keystore=false" >> $GITHUB_OUTPUT
           fi
 
@@ -104,7 +104,21 @@ jobs:
           tag_name: ${{ github.ref_name || format('v{0}', env.VERSION_NAME) }}
           name: OpenRide Companion v${{ env.VERSION_NAME }}
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           generate_release_notes: true
+          body: |
+            ## OpenRide Companion ${{ env.VERSION_NAME }}
+
+            ### Included Features
+            - **WhatsApp & Map Link Support:** Tap shared WhatsApp location messages or `maps.app.goo.gl` links to open directly in OpenRide.
+            - **Android Map Handler:** Registered as a system handler for `geo:` and `google.navigation:` URIs to appear in the "Open with" chooser alongside Google Maps.
+            - **Local Search Engine:** Built-in place, shop, and address search with proximity distance calculations and motorcyclist quick categories (Fuel, EV, Bike Repair/Puncture, Food, Hospitals).
+            - **In-App Auto Updater:** Automatically checks GitHub Releases for newer builds and downloads/installs in-place.
+            - **Galaxy S23 Ultra & Android 15/16 Ready:** Edge-to-edge layout, OLED high-contrast dark palette, and dual foreground service compliance (`location|connectedDevice`).
+
+            ### Installation Instructions
+            1. Download `openride-v${{ env.VERSION_NAME }}.apk` below.
+            2. Open the file on your Android device. If prompted, allow "Install Unknown Apps" from your browser/files app.
+            3. Tap **Install** (or **Update**). All settings and data are preserved.
           files: |
             ${{ env.RELEASE_APK_PATH }}

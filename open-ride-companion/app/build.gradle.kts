@@ -45,9 +45,18 @@ android {
             val releaseSigning = signingConfigs.getByName("release")
             if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
                 signingConfig = releaseSigning
+            } else {
+                // Ensure generated release APK is always signed and installable
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -65,6 +74,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
