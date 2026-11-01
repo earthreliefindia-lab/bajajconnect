@@ -1,7 +1,10 @@
 package com.openride.companion.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -12,7 +15,13 @@ import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.openride.companion.location.NearbyCategory
 import com.openride.companion.location.ParsedDestination
 import com.openride.companion.model.ClusterType
@@ -49,6 +58,10 @@ fun MainBottomNavigation(
     routeCoordinates: List<Pair<Double, Double>>,
     mapplsApiKey: String = "",
     onSaveMapplsApiKey: (String) -> Unit = {},
+    useDynamicColor: Boolean = true,
+    themeMode: String = "system",
+    onToggleDynamicColor: (Boolean) -> Unit = {},
+    onChangeThemeMode: (String) -> Unit = {},
     isAutoSmsEnabled: Boolean,
     customAutoSmsText: String,
     onClusterTypeChange: (ClusterType) -> Unit,
@@ -70,24 +83,50 @@ fun MainBottomNavigation(
     onViewDocument: (VehicleDocument) -> Unit,
     onEmergencyRsaClick: () -> Unit
 ) {
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = NavigationBarDefaults.Elevation
+                tonalElevation = 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        // Android 16 stroke hairline divider
+                        drawLine(
+                            color = outlineColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
             ) {
                 NavigationTabItem.values().forEach { tab ->
+                    val isSelected = selectedTab == tab
                     NavigationBarItem(
-                        selected = selectedTab == tab,
+                        selected = isSelected,
                         onClick = { onTabChange(tab) },
-                        icon = { Icon(imageVector = tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
+                        icon = {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.label
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = tab.label,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                            indicatorColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     )
                 }
@@ -154,6 +193,10 @@ fun MainBottomNavigation(
                         documents = documents,
                         mapplsApiKey = mapplsApiKey,
                         onSaveMapplsApiKey = onSaveMapplsApiKey,
+                        useDynamicColor = useDynamicColor,
+                        themeMode = themeMode,
+                        onToggleDynamicColor = onToggleDynamicColor,
+                        onChangeThemeMode = onChangeThemeMode,
                         isAutoSmsEnabled = isAutoSmsEnabled,
                         customAutoSmsText = customAutoSmsText,
                         onAutoSmsToggle = onAutoSmsToggle,

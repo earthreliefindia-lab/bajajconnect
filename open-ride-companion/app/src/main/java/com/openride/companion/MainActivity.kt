@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -132,7 +133,19 @@ class MainActivity : ComponentActivity() {
         checkForAppUpdates()
 
         setContent {
-            OpenRideTheme {
+            val useDynamicColor by VehicleRepository.useDynamicColor.collectAsState()
+            val themeMode by VehicleRepository.themeMode.collectAsState()
+            val systemDark = isSystemInDarkTheme()
+            val isDarkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> systemDark
+            }
+
+            OpenRideTheme(
+                useDynamicColor = useDynamicColor,
+                darkTheme = isDarkTheme
+            ) {
                 val vehicle by VehicleRepository.vehicle.collectAsState()
                 val trips by VehicleRepository.trips.collectAsState()
                 val activeInstruction by VehicleRepository.activeInstruction.collectAsState()
@@ -156,6 +169,10 @@ class MainActivity : ComponentActivity() {
                     userLongitude = lastKnownLocation?.longitude,
                     routeCoordinates = routeCoordinates,
                     mapplsApiKey = mapplsApiKey,
+                    useDynamicColor = useDynamicColor,
+                    themeMode = themeMode,
+                    onToggleDynamicColor = { VehicleRepository.setDynamicColor(it) },
+                    onChangeThemeMode = { VehicleRepository.setThemeMode(it) },
                     onSaveMapplsApiKey = { newKey ->
                         VehicleRepository.setMapplsApiKey(newKey)
                         Toast.makeText(

@@ -1,5 +1,6 @@
 package com.openride.companion.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,15 +25,16 @@ fun MapplsSetupDialog(
 ) {
     var keyInput by remember(currentApiKey) { mutableStateOf(currentApiKey) }
     val isFreeMode = keyInput.isBlank()
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
             Column(
                 modifier = Modifier
@@ -86,8 +88,8 @@ fun MapplsSetupDialog(
                 // Active Mode Banner
                 Surface(
                     color = if (isFreeMode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color(0xFF00E676).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(14.dp),
-                    border = ButtonDefaults.outlinedButtonBorder
+                    shape = RoundedCornerShape(16.dp),
+                    border = strokeBorder
                 ) {
                     Row(
                         modifier = Modifier

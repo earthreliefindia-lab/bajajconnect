@@ -1,8 +1,7 @@
 package com.openride.companion.ui
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -44,6 +43,7 @@ fun DashboardTab(
     onEmergencyRsaClick: () -> Unit
 ) {
     var showGarageDialog by remember { mutableStateOf(false) }
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
 
     Column(
         modifier = Modifier
@@ -51,111 +51,112 @@ fun DashboardTab(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // --- 1. Top Header with Brand Logo & Cluster Connection Pill ---
+        // --- 1. Top Minimalist Header ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.TwoWheeler,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = strokeBorder,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.TwoWheeler,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
                     Text(
-                        text = "BAJAJ RIDE CONNECT",
+                        text = "Bajaj Ride Connect",
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp,
-                        color = Color.White
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Connected Motorcycle",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = "Official Connected Motorcycle Companion",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
-            // Connection Badge Button
+            // Connection Pill Chip
             val isConnected = vehicle.connectionStatus == BleConnectionStatus.CONNECTED
             Surface(
                 onClick = onConnectBleClick,
-                color = if (isConnected) Color(0xFF00382B) else MaterialTheme.colorScheme.surfaceVariant,
+                color = if (isConnected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(20.dp),
-                border = ButtonDefaults.outlinedButtonBorder
+                border = strokeBorder
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(if (isConnected) Color(0xFF00E676) else Color(0xFFFF5252))
+                            .background(if (isConnected) Color(0xFF00E676) else MaterialTheme.colorScheme.error)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (isConnected) "Connected" else "Pair Cluster",
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isConnected) Color(0xFF00E676) else MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 2. Motorcycle Hero Card with Garage Switcher ---
+        // --- 2. Minimalist Vehicle Hero Card (Android 16 Stroke Style) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(18.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { showGarageDialog = true }
-                        ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showGarageDialog = true }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = vehicle.modelName,
-                                fontSize = 19.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Switch Bike",
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Switch Vehicle",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Text(
-                            text = "Reg: ${vehicle.registrationNumber} · VIN: ${vehicle.vinNumber.takeLast(6)}",
-                            fontSize = 12.sp,
+                            text = "${vehicle.registrationNumber} · VIN ${vehicle.vinNumber.takeLast(6)}",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -163,29 +164,32 @@ fun DashboardTab(
 
                     Surface(
                         onClick = { showGarageDialog = true },
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        border = strokeBorder
                     ) {
                         Text(
                             text = "GARAGE",
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Ride Modes Selector (Road / Rain / Off-Road / Sport)
+                // Ride Modes Pill Selector
                 Text(
                     text = "ABS & ENGINE RIDE MODE",
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -195,12 +199,12 @@ fun DashboardTab(
                         val isSelected = vehicle.currentRideMode == mode
                         Surface(
                             onClick = { onRideModeChange(mode) },
-                            color = if (isSelected) Color(mode.colorHex).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp),
-                            border = if (isSelected) ButtonDefaults.outlinedButtonBorder else null
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(16.dp),
+                            border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else strokeBorder
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
@@ -213,8 +217,8 @@ fun DashboardTab(
                                 Text(
                                     text = mode.title,
                                     fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -225,7 +229,7 @@ fun DashboardTab(
                 Text(
                     text = vehicle.currentRideMode.description,
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 15.sp
                 )
 
@@ -234,7 +238,7 @@ fun DashboardTab(
                 // Vital Telemetry Metrics Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     VitalStatCard(
                         icon = Icons.Default.BatteryChargingFull,
@@ -242,10 +246,9 @@ fun DashboardTab(
                         title = "Battery",
                         primaryValue = "${vehicle.batteryPercentage}%",
                         subValue = "${vehicle.batteryVoltage} V",
+                        strokeBorder = strokeBorder,
                         modifier = Modifier.weight(1f)
                     )
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     VitalStatCard(
                         icon = Icons.Default.LocalGasStation,
@@ -253,27 +256,27 @@ fun DashboardTab(
                         title = "Fuel & Range",
                         primaryValue = "${vehicle.fuelPercentage}%",
                         subValue = "~${vehicle.dteKm} km DTE",
+                        strokeBorder = strokeBorder,
                         modifier = Modifier.weight(1f)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     VitalStatCard(
                         icon = Icons.Default.Speed,
-                        iconTint = Color(0xFF00E676),
+                        iconTint = MaterialTheme.colorScheme.tertiary,
                         title = "Odometer",
                         primaryValue = "${vehicle.odoKm}",
                         subValue = "km total",
+                        strokeBorder = strokeBorder,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Button(
                     onClick = onStartRideClick,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -281,18 +284,19 @@ fun DashboardTab(
                 ) {
                     Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Start Live Ride Navigation", fontWeight = FontWeight.Bold)
+                    Text("Start Live Ride Navigation", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 3. Quick Action Grid (Book Service, Documents, Locate Bike, RSA) ---
+        // --- 3. Quick Action Grid (Android 16 1dp Stroke Style) ---
         Text(
             text = "QUICK SERVICES & ASSISTANCE",
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
@@ -306,6 +310,7 @@ fun DashboardTab(
                 iconTint = MaterialTheme.colorScheme.secondary,
                 title = "Book Service",
                 subtitle = "Authorized care",
+                strokeBorder = strokeBorder,
                 onClick = onBookServiceClick,
                 modifier = Modifier.weight(1f)
             )
@@ -315,6 +320,7 @@ fun DashboardTab(
                 iconTint = MaterialTheme.colorScheme.primary,
                 title = "My Documents",
                 subtitle = "RC, Insurance, PUC",
+                strokeBorder = strokeBorder,
                 onClick = onDocumentsClick,
                 modifier = Modifier.weight(1f)
             )
@@ -328,33 +334,35 @@ fun DashboardTab(
         ) {
             QuickActionTile(
                 icon = Icons.Default.LocationOn,
-                iconTint = Color(0xFF00E676),
+                iconTint = MaterialTheme.colorScheme.tertiary,
                 title = "Locate Bike",
                 subtitle = "Last parked pin",
+                strokeBorder = strokeBorder,
                 onClick = onLocateBikeClick,
                 modifier = Modifier.weight(1f)
             )
 
             QuickActionTile(
                 icon = Icons.Default.Emergency,
-                iconTint = Color(0xFFFF3B30),
+                iconTint = MaterialTheme.colorScheme.error,
                 title = "Roadside RSA",
                 subtitle = "24x7 Assistance",
+                strokeBorder = strokeBorder,
                 onClick = onEmergencyRsaClick,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // --- 4. Next Periodic Service Due Card ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -364,8 +372,8 @@ fun DashboardTab(
                         Icon(
                             imageVector = Icons.Default.Verified,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -380,7 +388,7 @@ fun DashboardTab(
                         text = "In ${vehicle.nextServiceDueDays} Days",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -390,8 +398,9 @@ fun DashboardTab(
                     progress = { 0.72f },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp),
-                    color = MaterialTheme.colorScheme.tertiary,
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
@@ -405,16 +414,16 @@ fun DashboardTab(
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // --- 5. Cluster Hardware Profile Selector ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Text(
                     text = "Cluster Protocol Framing",
                     fontSize = 14.sp,
@@ -437,6 +446,7 @@ fun DashboardTab(
                         selected = vehicle.clusterType == ClusterType.CLUSTER_2763,
                         onClick = { onClusterTypeChange(ClusterType.CLUSTER_2763) },
                         label = { Text("Pulsar/Dominar LCD (2763)", fontSize = 11.sp) },
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -444,6 +454,7 @@ fun DashboardTab(
                         selected = vehicle.clusterType == ClusterType.CLUSTER_0265,
                         onClick = { onClusterTypeChange(ClusterType.CLUSTER_0265) },
                         label = { Text("Color TFT (0265)", fontSize = 11.sp) },
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -451,7 +462,7 @@ fun DashboardTab(
         }
     }
 
-    // Garage Bike Switcher Dialog
+    // Garage Bike Switcher Dialog (Android 16 Expressive Card Style)
     if (showGarageDialog) {
         AlertDialog(
             onDismissRequest = { showGarageDialog = false },
@@ -459,40 +470,45 @@ fun DashboardTab(
                 Text("Select Bike from Garage", fontWeight = FontWeight.Bold)
             },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     VehicleRepository.GARAGE_MODELS.forEach { bikeName ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable {
-                                    onSwitchBikeClick(bikeName)
-                                    showGarageDialog = false
-                                }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        val isSelected = vehicle.modelName == bikeName
+                        Surface(
+                            onClick = {
+                                onSwitchBikeClick(bikeName)
+                                showGarageDialog = false
+                            },
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(14.dp),
+                            border = strokeBorder,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            RadioButton(
-                                selected = vehicle.modelName == bikeName,
-                                onClick = {
-                                    onSwitchBikeClick(bikeName)
-                                    showGarageDialog = false
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = bikeName,
-                                fontSize = 14.sp,
-                                fontWeight = if (vehicle.modelName == bikeName) FontWeight.Bold else FontWeight.Normal,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Row(
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        onSwitchBikeClick(bikeName)
+                                        showGarageDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = bikeName,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showGarageDialog = false }) {
-                    Text("Close")
+                    Text("Close", fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -505,6 +521,7 @@ fun QuickActionTile(
     iconTint: Color,
     title: String,
     subtitle: String,
+    strokeBorder: BorderStroke,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -512,16 +529,16 @@ fun QuickActionTile(
         onClick = onClick,
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(16.dp),
-        border = ButtonDefaults.outlinedButtonBorder
+        shape = RoundedCornerShape(20.dp),
+        border = strokeBorder
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = iconTint.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp),
+                color = iconTint.copy(alpha = 0.12f),
                 modifier = Modifier.size(38.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -544,22 +561,32 @@ fun VitalStatCard(
     title: String,
     primaryValue: String,
     subValue: String,
+    strokeBorder: BorderStroke,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(14.dp)
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp),
+        border = strokeBorder
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = iconTint.copy(alpha = 0.12f),
+                modifier = Modifier.size(28.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
             Text(text = title, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(text = primaryValue, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(text = subValue, fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+            Text(text = subValue, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
         }
     }
 }

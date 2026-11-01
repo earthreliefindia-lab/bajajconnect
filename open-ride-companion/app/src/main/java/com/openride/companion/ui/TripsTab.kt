@@ -1,5 +1,6 @@
 package com.openride.companion.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,14 +24,16 @@ fun TripsTab(
     trips: List<TripRecord>,
     onTripClick: (TripRecord) -> Unit
 ) {
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // --- 1. Header ---
+        // --- 1. Minimalist Header ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -38,30 +41,29 @@ fun TripsTab(
         ) {
             Column {
                 Text(
-                    text = "RIDE TELEMETRY",
+                    text = "Rides & Telemetry",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.2.sp,
-                    color = MaterialTheme.colorScheme.primary
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Historical Trips & Performance",
-                    fontSize = 12.sp,
+                    text = "Ride history and performance metrics",
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(12.dp),
-                border = ButtonDefaults.outlinedButtonBorder
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                border = strokeBorder
             ) {
                 Text(
                     text = "${trips.size} Rides",
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }
@@ -77,17 +79,26 @@ fun TripsTab(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = strokeBorder,
                         modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = "No rides recorded yet",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -100,18 +111,18 @@ fun TripsTab(
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(trips) { trip ->
                     Card(
                         onClick = { onTripClick(trip) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = ButtonDefaults.outlinedButtonBorder
+                        border = strokeBorder
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(18.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -119,43 +130,41 @@ fun TripsTab(
                             ) {
                                 Text(
                                     text = trip.title,
-                                    fontSize = 16.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = trip.dateFormatted,
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Route Endpoints
+                            // Route Endpoints with Connected Nodes
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.TripOrigin,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(8.dp)
+                                ) {}
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = trip.startAddress,
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Place,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(8.dp)
+                                ) {}
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = trip.endAddress,
                                     fontSize = 12.sp,
@@ -165,15 +174,15 @@ fun TripsTab(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Stats Chips Row
+                            // Stats Chips Row (Android 16 Pill Cards)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                TripMetricPill(label = "Distance", value = trip.formattedDistance)
-                                TripMetricPill(label = "Duration", value = trip.formattedDuration)
-                                TripMetricPill(label = "Avg Speed", value = "${trip.avgSpeedKmh.toInt()} km/h")
-                                TripMetricPill(label = "Mileage", value = "${trip.fuelEfficiencyKmpl} km/l")
+                                TripMetricPill(label = "Distance", value = trip.formattedDistance, strokeBorder = strokeBorder, modifier = Modifier.weight(1f))
+                                TripMetricPill(label = "Duration", value = trip.formattedDuration, strokeBorder = strokeBorder, modifier = Modifier.weight(1f))
+                                TripMetricPill(label = "Avg Speed", value = "${trip.avgSpeedKmh.toInt()} km/h", strokeBorder = strokeBorder, modifier = Modifier.weight(1f))
+                                TripMetricPill(label = "Mileage", value = "${trip.fuelEfficiencyKmpl} km/l", strokeBorder = strokeBorder, modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -184,17 +193,24 @@ fun TripsTab(
 }
 
 @Composable
-fun TripMetricPill(label: String, value: String) {
+fun TripMetricPill(
+    label: String,
+    value: String,
+    strokeBorder: BorderStroke,
+    modifier: Modifier = Modifier
+) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp)
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(14.dp),
+        border = strokeBorder
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(text = label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text = value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

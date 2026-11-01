@@ -108,6 +108,34 @@ object LocationIntentParser {
     }
 
     /**
+     * Safely retrieves a query parameter from any URI, whether hierarchical or opaque (like geo: or google.navigation:).
+     * Prevents UnsupportedOperationException: This isn't a hierarchical URI.
+     */
+    fun getSafeQueryParameter(uri: Uri, key: String): String? {
+        return try {
+            if (uri.isHierarchical) {
+                uri.getQueryParameter(key)
+            } else {
+                val ssp = uri.schemeSpecificPart ?: return null
+                val queryPart = if (ssp.contains("?")) ssp.substringAfter("?") else ssp
+                val paramPrefix = "$key="
+                queryPart.split("&").firstOrNull { 
+                    it.startsWith(paramPrefix, ignoreCase = true) 
+                }?.let { pair ->
+                    val rawVal = pair.substring(paramPrefix.length)
+                    try {
+                        URLDecoder.decode(rawVal, StandardCharsets.UTF_8.name())
+                    } catch (_: Exception) {
+                        rawVal
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * Parses geo: URIs:
      * - geo:18.52043,73.85674
      * - geo:0,0?q=18.52043,73.85674(Destination Name)
@@ -115,63 +143,73 @@ object LocationIntentParser {
      * - geo:0,0?q=Deccan+Gymkhana+Pune
      */
     private suspend fun parseGeoUri(context: Context, uri: Uri): ParsedDestination? {
-        val ssp = uri.schemeSpecificPart ?: ""
-        val query = uri.getQueryParameter("q")
+        return try {
+            val ssp = uri.schemeSpecificPart ?: ""
+            val query = getSafeQueryParameter(uri, "q")
 
-        // 1. Check if q parameter has coordinates e.g. q=18.52,73.85(Label)
-        if (!query.isNullOrBlank()) {
-            val labelMatcher = Pattern.compile("^(.*?)\\((.*?)\\)$").matcher(query)
-            val (searchTarget, customLabel) = if (labelMatcher.matches()) {
-                labelMatcher.group(1)?.trim() to labelMatcher.group(2)?.trim()
-            } else {
-                query to null
-            }
+            // 1. Check if q parameter has coordinates e.g. q=18.52,73.85(Label)
+            if (!query.isNullOrBlank()) {
+                val labelMatcher = Pattern.compile("^(.*?)\\((.*?)\\)$").matcher(query)
+                val (searchTarget, customLabel) = if (labelMatcher.matches()) {
+                    labelMatcher.group(1)?.trim() to labelMatcher.group(2)?.trim()
+                } else {
+                    query to null
+                }
 
-            val targetStr = searchTarget ?: query
-            val coordMatcher = COORD_PATTERN.matcher(targetStr)
-            if (coordMatcher.find()) {
-                val lat = coordMatcher.group(1)?.toDoubleOrNull() ?: 0.0
-                val lng = coordMatcher.group(2)?.toDoubleOrNull() ?: 0.0
-                val title = customLabel ?: reverseGeocodeTitle(context, lat, lng) ?: "Shared Location"
-                return ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Maps Pin")
-            } else {
-                // Address query e.g. "Deccan Gymkhana"
-                val resolved = geocodeAddress(context, targetStr)
-                if (resolved != null) {
-                    val finalTitle = customLabel ?: resolved.title
-                    return resolved.copy(title = finalTitle, rawSource = uri.toString(), sourceApp = "Map Search Query")
+                val targetStr = searchTarget ?: query
+                val coordMatcher = COORD_PATTERN.matcher(targetStr)
+                if (coordMatcher.find()) {
+                    val lat = coordMatcher.group(1)?.toDoubleOrNull() ?: 0.0
+                    val lng = coordMatcher.group(2)?.toDoubleOrNull() ?: 0.0
+                    val title = customLabel ?: reverseGeocodeTitle(context, lat, lng) ?: "Shared Location"
+                    return ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Maps Pin")
+                } else {
+                    // Address query e.g. "Deccan Gymkhana"
+                    val resolved = geocodeAddress(context, targetStr)
+                    if (resolved != null) {
+                        val finalTitle = customLabel ?: resolved.title
+                        return resolved.copy(title = finalTitle, rawSource = uri.toString(), sourceApp = "Map Search Query")
+                    }
                 }
             }
-        }
 
-        // 2. Check the main coordinate part before '?' e.g. geo:18.52043,73.85674
-        val mainPart = ssp.substringBefore('?')
-        val coordMatcher = COORD_PATTERN.matcher(mainPart)
-        if (coordMatcher.find()) {
-            val lat = coordMatcher.group(1)?.toDoubleOrNull() ?: return null
-            val lng = coordMatcher.group(2)?.toDoubleOrNull() ?: return null
-            if (lat != 0.0 || lng != 0.0) {
-                val title = reverseGeocodeTitle(context, lat, lng) ?: "Pin Drop Location"
-                return ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Maps Pin")
+            // 2. Check the main coordinate part before '?' e.g. geo:18.52043,73.85674
+            val mainPart = ssp.substringBefore('?')
+            val coordMatcher = COORD_PATTERN.matcher(mainPart)
+            if (coordMatcher.find()) {
+                val lat = coordMatcher.group(1)?.toDoubleOrNull() ?: return null
+                val lng = coordMatcher.group(2)?.toDoubleOrNull() ?: return null
+                if (lat != 0.0 || lng != 0.0) {
+                    val title = reverseGeocodeTitle(context, lat, lng) ?: "Pin Drop Location"
+                    return ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Maps Pin")
+                }
             }
-        }
 
-        return null
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing geo: URI: $uri", e)
+            null
+        }
     }
 
     /**
      * Parses google.navigation:q=18.5204,73.8567&mode=l (two-wheeler bike mode)
      */
     private suspend fun parseGoogleNavigationUri(context: Context, uri: Uri): ParsedDestination? {
-        val q = uri.getQueryParameter("q") ?: return null
-        val matcher = COORD_PATTERN.matcher(q)
-        return if (matcher.find()) {
-            val lat = matcher.group(1)?.toDoubleOrNull() ?: return null
-            val lng = matcher.group(2)?.toDoubleOrNull() ?: return null
-            val title = reverseGeocodeTitle(context, lat, lng) ?: "Navigation Target"
-            ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Navigation")
-        } else {
-            geocodeAddress(context, q)?.copy(rawSource = uri.toString(), sourceApp = "Google Navigation")
+        return try {
+            val q = getSafeQueryParameter(uri, "q") ?: return null
+            val matcher = COORD_PATTERN.matcher(q)
+            if (matcher.find()) {
+                val lat = matcher.group(1)?.toDoubleOrNull() ?: return null
+                val lng = matcher.group(2)?.toDoubleOrNull() ?: return null
+                val title = reverseGeocodeTitle(context, lat, lng) ?: "Navigation Target"
+                ParsedDestination(lat, lng, title, rawSource = uri.toString(), sourceApp = "Google Navigation")
+            } else {
+                geocodeAddress(context, q)?.copy(rawSource = uri.toString(), sourceApp = "Google Navigation")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing google.navigation URI: $uri", e)
+            null
         }
     }
 
@@ -266,10 +304,10 @@ object LocationIntentParser {
         // 5. Check if query is an address in ?q= or &query=
         try {
             val parsedUri = Uri.parse(url)
-            val queryText = parsedUri.getQueryParameter("q")
-                ?: parsedUri.getQueryParameter("query")
-                ?: parsedUri.getQueryParameter("destination")
-                ?: parsedUri.getQueryParameter("daddr")
+            val queryText = getSafeQueryParameter(parsedUri, "q")
+                ?: getSafeQueryParameter(parsedUri, "query")
+                ?: getSafeQueryParameter(parsedUri, "destination")
+                ?: getSafeQueryParameter(parsedUri, "daddr")
 
             if (!queryText.isNullOrBlank()) {
                 val coordMatch = COORD_PATTERN.matcher(queryText)
@@ -509,7 +547,13 @@ object LocationIntentParser {
                         geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
                             override fun onGeocode(addresses: MutableList<Address>) {
                                 val addr = addresses.firstOrNull()
-                                val title = addr?.featureName ?: addr?.locality ?: addr?.subLocality
+                                val title = when {
+                                    !addr?.subLocality.isNullOrBlank() && !addr?.locality.isNullOrBlank() -> "${addr.subLocality}, ${addr.locality}"
+                                    !addr?.locality.isNullOrBlank() -> addr.locality
+                                    !addr?.thoroughfare.isNullOrBlank() -> addr.thoroughfare
+                                    !addr?.featureName.isNullOrBlank() && !addr.featureName.all { it.isDigit() } -> addr.featureName
+                                    else -> addr?.subLocality ?: addr?.locality ?: addr?.featureName
+                                }
                                 if (continuation.isActive) continuation.resume(title)
                             }
                             override fun onError(errorMessage: String?) {
@@ -521,7 +565,13 @@ object LocationIntentParser {
                     @Suppress("DEPRECATION")
                     val results = geocoder.getFromLocation(lat, lng, 1)
                     val addr = results?.firstOrNull()
-                    addr?.featureName ?: addr?.locality ?: addr?.subLocality
+                    when {
+                        !addr?.subLocality.isNullOrBlank() && !addr?.locality.isNullOrBlank() -> "${addr.subLocality}, ${addr.locality}"
+                        !addr?.locality.isNullOrBlank() -> addr.locality
+                        !addr?.thoroughfare.isNullOrBlank() -> addr.thoroughfare
+                        !addr?.featureName.isNullOrBlank() && !addr.featureName.all { it.isDigit() } -> addr.featureName
+                        else -> addr?.subLocality ?: addr?.locality ?: addr?.featureName
+                    }
                 }
             } catch (e: Exception) {
                 null

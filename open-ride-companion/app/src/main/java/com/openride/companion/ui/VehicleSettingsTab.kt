@@ -1,5 +1,6 @@
 package com.openride.companion.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +28,10 @@ fun VehicleSettingsTab(
     documents: List<VehicleDocument>,
     mapplsApiKey: String = "",
     onSaveMapplsApiKey: (String) -> Unit = {},
+    useDynamicColor: Boolean = true,
+    themeMode: String = "system",
+    onToggleDynamicColor: (Boolean) -> Unit = {},
+    onChangeThemeMode: (String) -> Unit = {},
     isAutoSmsEnabled: Boolean,
     customAutoSmsText: String,
     onAutoSmsToggle: (Boolean) -> Unit,
@@ -37,6 +42,7 @@ fun VehicleSettingsTab(
 ) {
     var smsText by remember { mutableStateOf(customAutoSmsText) }
     var showMapplsDialog by remember { mutableStateOf(false) }
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
 
     Column(
         modifier = Modifier
@@ -44,46 +50,156 @@ fun VehicleSettingsTab(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // --- 1. Header ---
+        // --- 1. Minimalist Header ---
         Text(
-            text = "PROFILE & SETTINGS",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.sp,
-            color = Color.White
+            text = "Profile & Settings",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            text = "Rider Profile, Digital Locker & Cluster Configuration",
+            text = "Appearance, vehicle locker, and motorcycle connectivity",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 2. Rider Profile Card ---
+        // --- 2. Android 16 Wallpaper Theme & Appearance Customizer ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(26.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Wallpaper Dynamic Theme",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Material You (Android 12–16 Monet)",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = useDynamicColor,
+                        onCheckedChange = onToggleDynamicColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = if (useDynamicColor)
+                        "Theme colors are extracted automatically from your device wallpaper."
+                    else
+                        "Using classic Bajaj Ride Connect high-contrast midnight palette.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 15.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Mode Selector: System / Dark / Light
+                Text(
+                    text = "APPEARANCE MODE",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "system" to "System",
+                        "dark" to "Dark",
+                        "light" to "Light"
+                    ).forEach { (modeKey, modeLabel) ->
+                        val isSelected = themeMode == modeKey
+                        Surface(
+                            onClick = { onChangeThemeMode(modeKey) },
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(14.dp),
+                            border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else strokeBorder,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = modeLabel,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // --- 3. Rider Profile Card ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = strokeBorder
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(50.dp)
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = strokeBorder,
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }
@@ -93,19 +209,19 @@ fun VehicleSettingsTab(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Bajaj Connected Rider",
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "+91 98765 43210 · Verified Member",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "Emergency Contact: Home (+91 98220 11223)",
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -113,11 +229,12 @@ fun VehicleSettingsTab(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 3. Digital Vehicle Locker (RC, Insurance, PUC, DL) ---
+        // --- 4. Digital Vehicle Locker (RC, Insurance, PUC, DL) ---
         Text(
             text = "DIGITAL VEHICLE LOCKER",
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 6.dp)
         )
@@ -129,19 +246,27 @@ fun VehicleSettingsTab(
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                border = ButtonDefaults.outlinedButtonBorder
+                shape = RoundedCornerShape(18.dp),
+                border = strokeBorder
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -157,15 +282,15 @@ fun VehicleSettingsTab(
                         )
                     }
                     Surface(
-                        color = Color(0xFF00E676).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(6.dp)
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = "VERIFIED",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF00E676),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                 }
@@ -174,14 +299,90 @@ fun VehicleSettingsTab(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 4. Bluetooth Cluster Connection Card ---
+        // --- 5. Mappls Maps (MapmyIndia) Setup & API Key Card ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(26.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Mappls Maps Navigation",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = if (mapplsApiKey.isNotBlank()) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = if (mapplsApiKey.isNotBlank()) "PRO KEY" else "100% FREE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (mapplsApiKey.isNotBlank()) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (mapplsApiKey.isNotBlank())
+                                "Connected to custom Mappls Console API key."
+                            else
+                                "Fully free unlimited engine. No API key needed. Always in Bike Mode.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { showMapplsDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (mapplsApiKey.isNotBlank()) "Configure / Switch to Free Mode" else "Setup Mappls API Key / View Status",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // --- 6. Bluetooth Cluster Sync Card ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = strokeBorder
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -213,7 +414,7 @@ fun VehicleSettingsTab(
                 Button(
                     onClick = onPairBluetoothClick,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -221,21 +422,21 @@ fun VehicleSettingsTab(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Scan & Pair Nearby Cluster", fontSize = 12.sp)
+                    Text("Scan & Pair Nearby Cluster", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 5. Handlebar Call Management & Auto-Reply SMS ---
+        // --- 7. Auto-Reply SMS on Call Decline ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(26.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -243,7 +444,7 @@ fun VehicleSettingsTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Auto-Reply SMS on Call Decline",
+                            text = "Auto-Reply SMS on Decline",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -262,7 +463,7 @@ fun VehicleSettingsTab(
                 }
 
                 if (isAutoSmsEnabled) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = smsText,
@@ -272,7 +473,7 @@ fun VehicleSettingsTab(
                         },
                         label = { Text("Custom SMS Text") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline
@@ -285,90 +486,14 @@ fun VehicleSettingsTab(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 6. Mappls Maps (MapmyIndia) Setup & API Key Card ---
+        // --- 8. App Info & Updates Check ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(26.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = strokeBorder
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Mappls Maps Navigation",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                color = if (mapplsApiKey.isNotBlank()) Color(0xFF00E676).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    text = if (mapplsApiKey.isNotBlank()) "PRO KEY" else "100% FREE",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (mapplsApiKey.isNotBlank()) Color(0xFF00E676) else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = if (mapplsApiKey.isNotBlank())
-                                "Connected to custom Mappls Console API key."
-                            else
-                                "Fully free unlimited engine. No API key needed. Always in Bike Mode.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = { showMapplsDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (mapplsApiKey.isNotBlank()) "Configure or Switch to Free Mode" else "Setup Mappls API Key / View Status",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // --- 7. App Info & GitHub Releases Update Check ---
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -384,7 +509,7 @@ fun VehicleSettingsTab(
                         Text(
                             text = "Release: v${BuildConfig.APP_VERSION_NAME} (Build ${BuildConfig.APP_VERSION_CODE})",
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.outline
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -407,7 +532,8 @@ fun VehicleSettingsTab(
                 OutlinedButton(
                     onClick = onCheckUpdateClick,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    border = strokeBorder
                 ) {
                     Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))

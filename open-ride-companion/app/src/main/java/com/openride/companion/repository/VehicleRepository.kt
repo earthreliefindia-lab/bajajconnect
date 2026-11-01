@@ -22,11 +22,19 @@ object VehicleRepository {
     private val _mapplsApiKey = MutableStateFlow("")
     val mapplsApiKey: StateFlow<String> = _mapplsApiKey.asStateFlow()
 
+    private val _useDynamicColor = MutableStateFlow(true)
+    val useDynamicColor: StateFlow<Boolean> = _useDynamicColor.asStateFlow()
+
+    private val _themeMode = MutableStateFlow("system") // "system", "dark", "light"
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
     fun init(context: Context) {
         if (sharedPreferences == null) {
             val prefs = context.applicationContext.getSharedPreferences("openride_prefs", Context.MODE_PRIVATE)
             sharedPreferences = prefs
             _mapplsApiKey.value = prefs.getString("mappls_api_key", "") ?: ""
+            _useDynamicColor.value = prefs.getBoolean("use_dynamic_color", true)
+            _themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
         }
     }
 
@@ -34,6 +42,16 @@ object VehicleRepository {
         val cleanKey = key.trim()
         _mapplsApiKey.value = cleanKey
         sharedPreferences?.edit()?.putString("mappls_api_key", cleanKey)?.apply()
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        _useDynamicColor.value = enabled
+        sharedPreferences?.edit()?.putBoolean("use_dynamic_color", enabled)?.apply()
+    }
+
+    fun setThemeMode(mode: String) {
+        _themeMode.value = mode
+        sharedPreferences?.edit()?.putString("theme_mode", mode)?.apply()
     }
 
     fun isMapplsFreeMode(): Boolean {
