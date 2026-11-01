@@ -296,7 +296,10 @@ private fun getMapplsStyleMapHtml(): String {
                     }
                     destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
                     if (title) {
-                        destMarker.bindPopup('<b style="color:#000;">' + title + '</b>');
+                        destMarker.bindPopup('<b style="color:#000;">' + title + '</b>').openPopup();
+                    }
+                    if (!routePolyline) {
+                        map.flyTo([lat, lng], 16, { animate: true, duration: 0.8 });
                     }
                 }
 

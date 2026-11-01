@@ -49,7 +49,7 @@
             </intent-filter>
 
             <!-- 2. Standard Android Map Handler (geo: URI scheme) -->
-            <!-- Allows app to appear in Android 'Open with' chooser alongside Google Maps -->
+            <!-- App appears in Android 'Open with' chooser alongside Google Maps -->
             <intent-filter android:label="@string/intent_open_in_openride">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -65,7 +65,28 @@
                 <data android:scheme="google.navigation" />
             </intent-filter>
 
-            <!-- 4. Google Maps & Shortened Web Links (WhatsApp & browser shares) -->
+            <!-- 4. Google Maps Shortened Links (WhatsApp share: maps.app.goo.gl) -->
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="maps.app.goo.gl" />
+            </intent-filter>
+
+            <!-- 5. Legacy Google Shortened Links (goo.gl/maps/...) -->
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="goo.gl" />
+                <data android:pathPrefix="/maps" />
+            </intent-filter>
+
+            <!-- 6. Google Maps Web Domain (maps.google.com) -->
             <intent-filter android:label="@string/intent_open_in_openride">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -73,12 +94,59 @@
                 <data android:scheme="http" />
                 <data android:scheme="https" />
                 <data android:host="maps.google.com" />
-                <data android:host="maps.app.goo.gl" />
-                <data android:host="goo.gl" android:pathPrefix="/maps" />
-                <data android:host="www.google.com" android:pathPrefix="/maps" />
             </intent-filter>
 
-            <!-- 5. WhatsApp & Shared Location Text Handler (Send / Share via) -->
+            <!-- 7. Google.com Maps Paths (/maps/...) -->
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="www.google.com" />
+                <data android:pathPrefix="/maps" />
+            </intent-filter>
+
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="google.com" />
+                <data android:pathPrefix="/maps" />
+            </intent-filter>
+
+            <!-- 8. Mappls Maps Links (mappls.com & www.mappls.com) -->
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="mappls.com" />
+            </intent-filter>
+
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="www.mappls.com" />
+            </intent-filter>
+
+            <!-- 9. MapmyIndia Short Links (mmi.in) -->
+            <intent-filter android:label="@string/intent_open_in_openride">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="mmi.in" />
+            </intent-filter>
+
+            <!-- 10. WhatsApp & Messaging Sharesheet Handler (Send / Share text via) -->
             <intent-filter android:label="@string/intent_send_to_openride">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -34,6 +34,7 @@ import com.openride.companion.repository.VehicleRepository
 import com.openride.companion.service.ClusterRelayService
 import com.openride.companion.telephony.CallSmsManager
 import com.openride.companion.ui.MainBottomNavigation
+import com.openride.companion.ui.NavigationTabItem
 import com.openride.companion.ui.OpenRideTheme
 import com.openride.companion.ui.UpdateDialog
 import com.openride.companion.update.AppUpdateInfo
@@ -50,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private var isNavigating by mutableStateOf(false)
     private var lastKnownLocation by mutableStateOf<Location?>(null)
     private var routeCoordinates by mutableStateOf<List<Pair<Double, Double>>>(emptyList())
+    private var selectedTab by mutableStateOf(NavigationTabItem.HOME)
 
     // Location Tracking
     private var fusedClient: FusedLocationProviderClient? = null
@@ -137,6 +139,8 @@ class MainActivity : ComponentActivity() {
                 val serviceCenters by VehicleRepository.serviceCenters.collectAsState()
 
                 MainBottomNavigation(
+                    selectedTab = selectedTab,
+                    onTabChange = { selectedTab = it },
                     vehicle = vehicle,
                     activeInstruction = activeInstruction,
                     isNavigating = isNavigating,
@@ -267,6 +271,7 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val parsed = LocationIntentParser.parseIntent(this@MainActivity, incomingIntent)
+            android.util.Log.i("MainActivity", "handleIncomingIntent: parsed = $parsed")
             if (parsed != null) {
                 val withDistance = lastKnownLocation?.let { loc ->
                     val destLoc = Location("").apply {
@@ -277,8 +282,10 @@ class MainActivity : ComponentActivity() {
                 } ?: parsed
 
                 currentDestination = withDistance
+                selectedTab = NavigationTabItem.NAVIGATION
+                searchResults = emptyList()
 
-                // Compute route preview
+                // Compute route preview immediately
                 val startLat = lastKnownLocation?.latitude ?: 18.5204
                 val startLng = lastKnownLocation?.longitude ?: 73.8567
                 val route = RouteNavigationManager.calculateRoute(

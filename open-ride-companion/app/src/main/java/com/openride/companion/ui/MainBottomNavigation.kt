@@ -33,6 +33,8 @@ enum class NavigationTabItem(val label: String, val icon: ImageVector) {
 
 @Composable
 fun MainBottomNavigation(
+    selectedTab: NavigationTabItem = NavigationTabItem.HOME,
+    onTabChange: (NavigationTabItem) -> Unit = {},
     vehicle: VehicleInfo,
     activeInstruction: LiveNavInstruction,
     isNavigating: Boolean,
@@ -66,8 +68,6 @@ fun MainBottomNavigation(
     onViewDocument: (VehicleDocument) -> Unit,
     onEmergencyRsaClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(NavigationTabItem.HOME) }
-
     Scaffold(
         bottomBar = {
             NavigationBar(
@@ -77,7 +77,7 @@ fun MainBottomNavigation(
                 NavigationTabItem.values().forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
+                        onClick = { onTabChange(tab) },
                         icon = { Icon(imageVector = tab.icon, contentDescription = tab.label) },
                         label = { Text(tab.label) },
                         colors = NavigationBarItemDefaults.colors(
@@ -102,13 +102,13 @@ fun MainBottomNavigation(
                     DashboardTab(
                         vehicle = vehicle,
                         onClusterTypeChange = onClusterTypeChange,
-                        onStartRideClick = { selectedTab = NavigationTabItem.NAVIGATION },
+                        onStartRideClick = { onTabChange(NavigationTabItem.NAVIGATION) },
                         onConnectBleClick = onPairBluetoothClick,
                         onSwitchBikeClick = onSwitchBikeClick,
                         onRideModeChange = onRideModeChange,
-                        onBookServiceClick = { selectedTab = NavigationTabItem.SERVICE },
-                        onDocumentsClick = { selectedTab = NavigationTabItem.PROFILE },
-                        onLocateBikeClick = { selectedTab = NavigationTabItem.NAVIGATION },
+                        onBookServiceClick = { onTabChange(NavigationTabItem.SERVICE) },
+                        onDocumentsClick = { onTabChange(NavigationTabItem.PROFILE) },
+                        onLocateBikeClick = { onTabChange(NavigationTabItem.NAVIGATION) },
                         onEmergencyRsaClick = onEmergencyRsaClick
                     )
                 }
