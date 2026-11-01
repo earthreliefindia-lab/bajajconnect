@@ -1,62 +1,99 @@
 # Bajaj Connect
 
-An independent Android application project focused on improving ride connectivity, map functionality, location sharing, and navigation experiences.
+<p align="center">
+  <strong>A smarter way to connect, explore and navigate.</strong>
+  <br/>
+  An independent Android app project focused on ride connectivity, smart maps and seamless location sharing.
+</p>
 
-> **Disclaimer:** This is an independent experimental project. It is not affiliated with, endorsed by, or officially supported by Bajaj Auto or any of its subsidiaries.
+<p align="center">
+  <a href="https://github.com/YOUR_USERNAME/bajajconnect/releases/latest">
+    <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APK-1F4D3A?style=for-the-badge&logo=android&logoColor=white" alt="Download Latest APK"/>
+  </a>
+</p>
 
-## Project Goals
+<p align="center">
+  <a href="https://github.com/YOUR_USERNAME/bajajconnect/releases">All Releases</a> •
+  <a href="https://github.com/YOUR_USERNAME/bajajconnect/issues">Report an Issue</a> •
+  <a href="https://github.com/YOUR_USERNAME/bajajconnect">Source Code</a>
+</p>
 
-- Improve map usability and navigation.
-- Enable local place and business searches.
-- Support opening shared WhatsApp locations directly in the app.
-- Support Android location intents and map links.
-- Improve compatibility with Android 15 and Android 16.
-- Optimize the experience for Samsung Galaxy devices and One UI.
-- Provide a reliable APK testing and update workflow.
+---
 
-## Technology
+## About the App
 
-- **Language:** Kotlin
-- **UI Framework:** Jetpack Compose
-- **Platform:** Android
-- **Maps:** Mappls Maps (subject to SDK and API availability)
-- **Distribution:** GitHub Releases
+Bajaj Connect is an independent Android application project exploring a more flexible and convenient ride-connectivity and navigation experience.
 
-## Installation
+## Key Features
 
-1. Open the [GitHub Releases](../../releases) page.
-2. Download the latest APK.
-3. Allow installation from the browser or file manager if Android requests permission.
-4. Install the APK on your Android device.
+- **Smart Maps:** Improved map browsing and navigation experience.
+- **Local Search:** Find nearby places, shops, restaurants and destinations.
+- **Location Sharing:** Open supported shared-location links directly in the app.
+- **WhatsApp Integration:** Handle compatible shared locations through Android's app chooser.
+- **Android Compatibility:** Development focused on Android 15 and Android 16.
+- **Samsung Optimization:** Testing and usability improvements for Samsung Galaxy devices.
 
-For updates, download and install the newer APK over the existing installation. Keep the same application ID and signing certificate to preserve app data.
+*Features are subject to development status and device compatibility.*
 
-## Development
+## Download & Install
 
-The project is being developed and tested incrementally.
+<p align="center">
+  <a href="https://github.com/YOUR_USERNAME/bajajconnect/releases/latest">
+    <img src="https://img.shields.io/badge/GET%20THE%20LATEST%20VERSION-Download%20APK-success?style=for-the-badge" alt="Get Latest Version"/>
+  </a>
+</p>
 
-Planned development areas:
+**Installation steps:**
 
-- Map and navigation improvements
-- Android intent and deep-link handling
-- WhatsApp shared-location integration
-- Local search functionality
-- Performance and stability improvements
-- Android 15/16 compatibility
-- Samsung One UI testing
+1. Tap the Download Latest APK button above.
+2. Open the latest release.
+3. Download the `.apk` file under Assets.
+4. Open the downloaded APK on your Android phone.
+5. Allow installation from this source if Android asks.
+6. Complete installation and launch the app.
 
-## Releases
+**Updating the app:** Download the newer APK and install it over the existing version. Do not uninstall the previous version if you want to preserve app data. Updates require the same application ID and signing certificate.
 
-All test and stable APK builds will be published through GitHub Releases.
+## Compatibility
 
-[View Latest Releases](../../releases/latest)
+| Requirement | Details |
+|---|---|
+| Platform | Android |
+| Primary development | Android 15 / 16 |
+| UI | Kotlin + Jetpack Compose |
+| Map integration | Mappls Maps |
+| Testing device | Samsung Galaxy S23 Ultra |
 
-## Security
+## Screenshots
 
-If you discover a security issue, please report it privately to the repository maintainer rather than publishing sensitive details.
+Screenshots will be added as development progresses.
 
-Never share API keys, signing credentials, private tokens, or personal information in issues or commits.
+## Version History
 
-## License
+Visit [GitHub Releases](https://github.com/YOUR_USERNAME/bajajconnect/releases) to see available versions, release notes and previous APK builds.
 
-License and third-party component notices will be added after reviewing the licensing requirements of all included dependencies and assets.
+## Feedback & Bug Reports
+
+Found a bug or have an improvement suggestion?
+
+[Report an Issue on GitHub](https://github.com/YOUR_USERNAME/bajajconnect/issues)
+
+## Disclaimer
+
+Bajaj Connect is an independent experimental software project. It is not affiliated with, endorsed by, or officially supported by Bajaj Auto or its subsidiaries.
+
+All third-party names, trademarks, SDKs and assets belong to their respective owners.
+
+## Technology Stack
+
+- Kotlin
+- Jetpack Compose
+- Android SDK
+- Mappls Maps SDK
+- GitHub Releases
+
+---
+
+<p align="center">
+  <strong>Built independently for a better Android experience.</strong>
+</p>
