@@ -122,6 +122,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        VehicleRepository.init(this)
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
         callSmsManager = CallSmsManager(this)
         clusterBleManager = BajajClusterBleManager(this)
@@ -137,6 +138,7 @@ class MainActivity : ComponentActivity() {
                 val activeInstruction by VehicleRepository.activeInstruction.collectAsState()
                 val documents by VehicleRepository.documents.collectAsState()
                 val serviceCenters by VehicleRepository.serviceCenters.collectAsState()
+                val mapplsApiKey by VehicleRepository.mapplsApiKey.collectAsState()
 
                 MainBottomNavigation(
                     selectedTab = selectedTab,
@@ -153,6 +155,15 @@ class MainActivity : ComponentActivity() {
                     userLatitude = lastKnownLocation?.latitude,
                     userLongitude = lastKnownLocation?.longitude,
                     routeCoordinates = routeCoordinates,
+                    mapplsApiKey = mapplsApiKey,
+                    onSaveMapplsApiKey = { newKey ->
+                        VehicleRepository.setMapplsApiKey(newKey)
+                        Toast.makeText(
+                            this@MainActivity,
+                            if (newKey.isBlank()) "Mappls Free Mode Active" else "Mappls API Key Saved",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
                     isAutoSmsEnabled = callSmsManager.isAutoSmsEnabled,
                     customAutoSmsText = callSmsManager.customAutoSmsText,
                     onClusterTypeChange = { type ->

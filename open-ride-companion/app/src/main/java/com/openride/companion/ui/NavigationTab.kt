@@ -37,6 +37,8 @@ fun NavigationTab(
     userLatitude: Double?,
     userLongitude: Double?,
     routeCoordinates: List<Pair<Double, Double>>,
+    mapplsApiKey: String = "",
+    onSaveMapplsApiKey: (String) -> Unit = {},
     onSearchQueryChange: (String) -> Unit,
     onCategorySelected: (NearbyCategory) -> Unit,
     onDestinationSelected: (ParsedDestination) -> Unit,
@@ -45,6 +47,7 @@ fun NavigationTab(
     onExternalMapsFallback: (ParsedDestination) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var showMapplsSetupDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -211,6 +214,8 @@ fun NavigationTab(
             userLongitude = userLongitude,
             destination = currentDestination,
             routeCoordinates = routeCoordinates,
+            mapplsApiKey = mapplsApiKey,
+            onConfigureMapplsClick = { showMapplsSetupDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(if (isNavigating) 240.dp else 220.dp)
@@ -457,6 +462,22 @@ fun NavigationTab(
                     }
                 }
             }
+        }
+
+        // --- 7. Mappls Maps (MapmyIndia) Setup Dialog ---
+        if (showMapplsSetupDialog) {
+            MapplsSetupDialog(
+                currentApiKey = mapplsApiKey,
+                onSaveApiKey = { newKey ->
+                    onSaveMapplsApiKey(newKey)
+                    showMapplsSetupDialog = false
+                },
+                onUseFreeMode = {
+                    onSaveMapplsApiKey("")
+                    showMapplsSetupDialog = false
+                },
+                onDismiss = { showMapplsSetupDialog = false }
+            )
         }
     }
 }

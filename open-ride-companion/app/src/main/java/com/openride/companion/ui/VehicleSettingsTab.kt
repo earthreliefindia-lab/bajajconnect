@@ -25,6 +25,8 @@ import com.openride.companion.model.VehicleInfo
 fun VehicleSettingsTab(
     vehicle: VehicleInfo,
     documents: List<VehicleDocument>,
+    mapplsApiKey: String = "",
+    onSaveMapplsApiKey: (String) -> Unit = {},
     isAutoSmsEnabled: Boolean,
     customAutoSmsText: String,
     onAutoSmsToggle: (Boolean) -> Unit,
@@ -34,6 +36,7 @@ fun VehicleSettingsTab(
     onViewDocumentClick: (VehicleDocument) -> Unit
 ) {
     var smsText by remember { mutableStateOf(customAutoSmsText) }
+    var showMapplsDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -282,7 +285,83 @@ fun VehicleSettingsTab(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // --- 6. App Info & GitHub Releases Update Check ---
+        // --- 6. Mappls Maps (MapmyIndia) Setup & API Key Card ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = ButtonDefaults.outlinedButtonBorder
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Mappls Maps Navigation",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = if (mapplsApiKey.isNotBlank()) Color(0xFF00E676).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = if (mapplsApiKey.isNotBlank()) "PRO KEY" else "100% FREE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (mapplsApiKey.isNotBlank()) Color(0xFF00E676) else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (mapplsApiKey.isNotBlank())
+                                "Connected to custom Mappls Console API key."
+                            else
+                                "Fully free unlimited engine. No API key needed. Always in Bike Mode.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { showMapplsDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (mapplsApiKey.isNotBlank()) "Configure or Switch to Free Mode" else "Setup Mappls API Key / View Status",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // --- 7. App Info & GitHub Releases Update Check ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -335,6 +414,21 @@ fun VehicleSettingsTab(
                     Text("Check for Updates (GitHub Releases)", fontSize = 12.sp)
                 }
             }
+        }
+
+        if (showMapplsDialog) {
+            MapplsSetupDialog(
+                currentApiKey = mapplsApiKey,
+                onSaveApiKey = { newKey ->
+                    onSaveMapplsApiKey(newKey)
+                    showMapplsDialog = false
+                },
+                onUseFreeMode = {
+                    onSaveMapplsApiKey("")
+                    showMapplsDialog = false
+                },
+                onDismiss = { showMapplsDialog = false }
+            )
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.openride.companion.repository
 
+import android.content.Context
+import android.content.SharedPreferences
 import com.openride.companion.model.BleConnectionStatus
 import com.openride.companion.model.ClusterType
 import com.openride.companion.model.LiveNavInstruction
@@ -16,8 +18,29 @@ import java.util.UUID
 
 object VehicleRepository {
 
+    private var sharedPreferences: SharedPreferences? = null
+    private val _mapplsApiKey = MutableStateFlow("")
+    val mapplsApiKey: StateFlow<String> = _mapplsApiKey.asStateFlow()
+
+    fun init(context: Context) {
+        if (sharedPreferences == null) {
+            val prefs = context.applicationContext.getSharedPreferences("openride_prefs", Context.MODE_PRIVATE)
+            sharedPreferences = prefs
+            _mapplsApiKey.value = prefs.getString("mappls_api_key", "") ?: ""
+        }
+    }
+
+    fun setMapplsApiKey(key: String) {
+        val cleanKey = key.trim()
+        _mapplsApiKey.value = cleanKey
+        sharedPreferences?.edit()?.putString("mappls_api_key", cleanKey)?.apply()
+    }
+
+    fun isMapplsFreeMode(): Boolean {
+        return _mapplsApiKey.value.isBlank()
+    }
+
     val GARAGE_MODELS = listOf(
-        "Bajaj Pulsar NS400Z",
         "Bajaj Dominar 400 Dual ABS",
         "Bajaj Pulsar N250",
         "Bajaj Pulsar N160",

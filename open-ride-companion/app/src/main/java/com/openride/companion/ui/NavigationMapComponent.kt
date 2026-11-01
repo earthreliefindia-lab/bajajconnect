@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,10 +34,25 @@ fun NavigationMapView(
     userLongitude: Double?,
     destination: ParsedDestination?,
     routeCoordinates: List<Pair<Double, Double>>,
+    mapplsApiKey: String = "",
+    onConfigureMapplsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isMapLoaded by remember { mutableStateOf(false) }
+
+    // Reload HTML when API key is switched between free mode and custom key
+    LaunchedEffect(mapplsApiKey) {
+        if (isMapLoaded) {
+            webViewInstance?.loadDataWithBaseURL(
+                "https://mappls.com",
+                getMapplsStyleMapHtml(mapplsApiKey),
+                "text/html",
+                "UTF-8",
+                null
+            )
+        }
+    }
 
     Box(
         modifier = modifier
@@ -76,7 +92,7 @@ fun NavigationMapView(
                         }
                     }
 
-                    val htmlContent = getMapplsStyleMapHtml()
+                    val htmlContent = getMapplsStyleMapHtml(mapplsApiKey)
                     loadDataWithBaseURL("https://mappls.com", htmlContent, "text/html", "UTF-8", null)
                     webViewInstance = this
                 }
@@ -116,8 +132,9 @@ fun NavigationMapView(
             }
         )
 
-        // Top-Left Badge: Mappls Maps · Two-Wheeler Mode
+        // Top-Left Badge: Mappls Maps · Two-Wheeler Mode (Tap to configure)
         Surface(
+            onClick = onConfigureMapplsClick,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(12.dp),
@@ -125,7 +142,7 @@ fun NavigationMapView(
             shape = RoundedCornerShape(12.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -136,30 +153,49 @@ fun NavigationMapView(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "MAPPLS · BIKE MODE",
+                    text = if (mapplsApiKey.isNotBlank()) "MAPPLS PRO · BIKE MODE" else "MAPPLS FREE · BIKE MODE",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.8.sp,
                     color = Color.White
                 )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = "Setup Mappls Key",
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(12.dp)
+                )
             }
         }
 
-        // Bottom-Left Badge: Free Mappls Vector Tiles
+        // Bottom-Left Badge: Free Mappls Vector Tiles / API Key Status
         Surface(
+            onClick = onConfigureMapplsClick,
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(12.dp),
             color = Color(0xFF070C14).copy(alpha = 0.85f),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(
-                text = "Mappls Maps India · 100% Free",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8),
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(if (mapplsApiKey.isNotBlank()) Color(0xFF00E676) else Color(0xFF00E5FF))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (mapplsApiKey.isNotBlank()) "Mappls API Key Active · Setup" else "Mappls Free Mode (No Key Needed) · Setup",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (mapplsApiKey.isNotBlank()) Color(0xFF00E676) else Color(0xFF94A3B8)
+                )
+            }
         }
 
         // Floating "My Location" Recenter Button
@@ -188,7 +224,10 @@ fun NavigationMapView(
     }
 }
 
-private fun getMapplsStyleMapHtml(): String {
+private fun getMapplsStyleMapHtml(apiKey: String = ""): String {
+    val cleanKey = apiKey.trim()
+    val isCustomKey = cleanKey.isNotEmpty()
+
     return """
         <!DOCTYPE html>
         <html>
@@ -251,11 +290,30 @@ private fun getMapplsStyleMapHtml(): String {
                     attributionControl: false
                 }).setView([18.5204, 73.8567], 14);
 
-                // Mappls / CartoDB High-Contrast Vector-Styled Tiles (Free, No API key required)
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                // Configure Tile Engine: Custom Mappls API Key vs 100% Free Vector Tile Engine
+                var isCustom = $isCustomKey;
+                var customKey = '$cleanKey';
+                var defaultFreeUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                var activeTileUrl = isCustom 
+                    ? 'https://apis.mappls.com/advancedmaps/v1/' + encodeURIComponent(customKey) + '/raster_tile/{z}/{x}/{y}.png'
+                    : defaultFreeUrl;
+
+                var mainTileLayer = L.tileLayer(activeTileUrl, {
                     maxZoom: 19,
-                    subdomains: 'abcd'
+                    subdomains: isCustom ? '' : 'abcd'
                 }).addTo(map);
+
+                // Automatic seamless fallback: if custom Mappls key fails or is unauthorized, switch to Free mode
+                if (isCustom) {
+                    mainTileLayer.on('tileerror', function() {
+                        console.warn('Mappls API key authorization failed, seamlessly falling back to Free Mappls Vector Tiles');
+                        map.removeLayer(mainTileLayer);
+                        L.tileLayer(defaultFreeUrl, {
+                            maxZoom: 19,
+                            subdomains: 'abcd'
+                        }).addTo(map);
+                    });
+                }
 
                 var userMarker = null;
                 var destMarker = null;
