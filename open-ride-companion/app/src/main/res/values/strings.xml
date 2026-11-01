@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OpenRide</string>
-    <string name="intent_open_in_openride">Open in OpenRide Navigation</string>
-    <string name="intent_send_to_openride">Send Destination to OpenRide</string>
+    <string name="app_name">Bajaj Ride Connect</string>
+    <string name="intent_open_in_openride">Open in Bajaj Ride Connect</string>
+    <string name="intent_send_to_openride">Send to Bajaj Ride Connect</string>
 </resources>

@@ -133,12 +133,16 @@ class MainActivity : ComponentActivity() {
                 val vehicle by VehicleRepository.vehicle.collectAsState()
                 val trips by VehicleRepository.trips.collectAsState()
                 val activeInstruction by VehicleRepository.activeInstruction.collectAsState()
+                val documents by VehicleRepository.documents.collectAsState()
+                val serviceCenters by VehicleRepository.serviceCenters.collectAsState()
 
                 MainBottomNavigation(
                     vehicle = vehicle,
                     activeInstruction = activeInstruction,
                     isNavigating = isNavigating,
                     trips = trips,
+                    documents = documents,
+                    serviceCenters = serviceCenters,
                     currentDestination = currentDestination,
                     searchResults = searchResults,
                     isSearching = isSearching,
@@ -150,6 +154,14 @@ class MainActivity : ComponentActivity() {
                     onClusterTypeChange = { type ->
                         VehicleRepository.updateClusterType(type)
                         Toast.makeText(this, "Switched to ${type.displayName}", Toast.LENGTH_SHORT).show()
+                    },
+                    onSwitchBikeClick = { modelName ->
+                        VehicleRepository.switchBike(modelName)
+                        Toast.makeText(this, "Active bike switched to $modelName", Toast.LENGTH_SHORT).show()
+                    },
+                    onRideModeChange = { mode ->
+                        VehicleRepository.setRideMode(mode)
+                        Toast.makeText(this, "ABS Mode: ${mode.title}", Toast.LENGTH_SHORT).show()
                     },
                     onSearchQueryChange = { query ->
                         performSearch(query)
@@ -199,7 +211,30 @@ class MainActivity : ComponentActivity() {
                     },
                     onPairBluetoothClick = {
                         clusterBleManager.startScan()
-                        Toast.makeText(this, "Scanning for nearby Bajaj motorcycle clusters...", Toast.LENGTH_SHORT).show()
+                        VehicleRepository.toggleBleConnection()
+                        Toast.makeText(this, "Scanning & syncing with motorcycle cluster...", Toast.LENGTH_SHORT).show()
+                    },
+                    onBookServiceAppointment = { center ->
+                        Toast.makeText(this, "Service booked at ${center.name}", Toast.LENGTH_LONG).show()
+                    },
+                    onCallServiceCenter = { phone ->
+                        try {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(this, "Calling $phone", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onViewDocument = { doc ->
+                        Toast.makeText(this, "${doc.title}: ${doc.documentNumber} (${doc.expiryDate})", Toast.LENGTH_LONG).show()
+                    },
+                    onEmergencyRsaClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:18002332453"))
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(this, "Toll-Free RSA: 1800 233 2453", Toast.LENGTH_LONG).show()
+                        }
                     }
                 )
 

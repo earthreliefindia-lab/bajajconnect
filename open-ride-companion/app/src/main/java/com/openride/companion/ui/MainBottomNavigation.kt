@@ -4,9 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,14 +17,18 @@ import com.openride.companion.location.NearbyCategory
 import com.openride.companion.location.ParsedDestination
 import com.openride.companion.model.ClusterType
 import com.openride.companion.model.LiveNavInstruction
+import com.openride.companion.model.RideMode
+import com.openride.companion.model.ServiceCenter
 import com.openride.companion.model.TripRecord
+import com.openride.companion.model.VehicleDocument
 import com.openride.companion.model.VehicleInfo
 
 enum class NavigationTabItem(val label: String, val icon: ImageVector) {
-    DASHBOARD("Dashboard", Icons.Default.Dashboard),
+    HOME("Home", Icons.Default.Home),
     NAVIGATION("Navigation", Icons.Default.Navigation),
     TRIPS("Trips", Icons.Default.Timeline),
-    SETTINGS("Settings", Icons.Default.Settings)
+    SERVICE("Service", Icons.Default.Build),
+    PROFILE("Profile", Icons.Default.Person)
 }
 
 @Composable
@@ -32,6 +37,8 @@ fun MainBottomNavigation(
     activeInstruction: LiveNavInstruction,
     isNavigating: Boolean,
     trips: List<TripRecord>,
+    documents: List<VehicleDocument>,
+    serviceCenters: List<ServiceCenter>,
     currentDestination: ParsedDestination?,
     searchResults: List<ParsedDestination>,
     isSearching: Boolean,
@@ -41,6 +48,8 @@ fun MainBottomNavigation(
     isAutoSmsEnabled: Boolean,
     customAutoSmsText: String,
     onClusterTypeChange: (ClusterType) -> Unit,
+    onSwitchBikeClick: (String) -> Unit,
+    onRideModeChange: (RideMode) -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onCategorySelected: (NearbyCategory) -> Unit,
     onDestinationSelected: (ParsedDestination) -> Unit,
@@ -51,9 +60,13 @@ fun MainBottomNavigation(
     onAutoSmsToggle: (Boolean) -> Unit,
     onCustomSmsChange: (String) -> Unit,
     onCheckUpdateClick: () -> Unit,
-    onPairBluetoothClick: () -> Unit
+    onPairBluetoothClick: () -> Unit,
+    onBookServiceAppointment: (ServiceCenter) -> Unit,
+    onCallServiceCenter: (String) -> Unit,
+    onViewDocument: (VehicleDocument) -> Unit,
+    onEmergencyRsaClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(NavigationTabItem.DASHBOARD) }
+    var selectedTab by remember { mutableStateOf(NavigationTabItem.HOME) }
 
     Scaffold(
         bottomBar = {
@@ -85,12 +98,18 @@ fun MainBottomNavigation(
                 .padding(innerPadding)
         ) {
             when (selectedTab) {
-                NavigationTabItem.DASHBOARD -> {
+                NavigationTabItem.HOME -> {
                     DashboardTab(
                         vehicle = vehicle,
                         onClusterTypeChange = onClusterTypeChange,
                         onStartRideClick = { selectedTab = NavigationTabItem.NAVIGATION },
-                        onConnectBleClick = onPairBluetoothClick
+                        onConnectBleClick = onPairBluetoothClick,
+                        onSwitchBikeClick = onSwitchBikeClick,
+                        onRideModeChange = onRideModeChange,
+                        onBookServiceClick = { selectedTab = NavigationTabItem.SERVICE },
+                        onDocumentsClick = { selectedTab = NavigationTabItem.PROFILE },
+                        onLocateBikeClick = { selectedTab = NavigationTabItem.NAVIGATION },
+                        onEmergencyRsaClick = onEmergencyRsaClick
                     )
                 }
                 NavigationTabItem.NAVIGATION -> {
@@ -117,15 +136,25 @@ fun MainBottomNavigation(
                         onTripClick = onTripClick
                     )
                 }
-                NavigationTabItem.SETTINGS -> {
+                NavigationTabItem.SERVICE -> {
+                    ServiceTab(
+                        vehicle = vehicle,
+                        serviceCenters = serviceCenters,
+                        onBookAppointmentClick = onBookServiceAppointment,
+                        onCallCenterClick = onCallServiceCenter
+                    )
+                }
+                NavigationTabItem.PROFILE -> {
                     VehicleSettingsTab(
                         vehicle = vehicle,
+                        documents = documents,
                         isAutoSmsEnabled = isAutoSmsEnabled,
                         customAutoSmsText = customAutoSmsText,
                         onAutoSmsToggle = onAutoSmsToggle,
                         onCustomSmsChange = onCustomSmsChange,
                         onCheckUpdateClick = onCheckUpdateClick,
-                        onPairBluetoothClick = onPairBluetoothClick
+                        onPairBluetoothClick = onPairBluetoothClick,
+                        onViewDocumentClick = onViewDocument
                     )
                 }
             }
