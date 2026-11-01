@@ -16,11 +16,14 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationServices
+import com.openride.companion.cluster.BajajClusterBleManager
 import com.openride.companion.location.LocalSearchManager
 import com.openride.companion.location.LocationIntentParser
 import com.openride.companion.location.ParsedDestination
+import com.openride.companion.repository.VehicleRepository
 import com.openride.companion.service.ClusterRelayService
-import com.openride.companion.ui.NavigationScreen
+import com.openride.companion.telephony.CallSmsManager
+import com.openride.companion.ui.MainBottomNavigation
 import com.openride.companion.ui.OpenRideTheme
 import com.openride.companion.ui.UpdateDialog
 import com.openride.companion.update.AppUpdateInfo
@@ -34,7 +37,12 @@ class MainActivity : ComponentActivity() {
     private var currentDestination by mutableStateOf<ParsedDestination?>(null)
     private var searchResults by mutableStateOf<List<ParsedDestination>>(emptyList())
     private var isSearching by mutableStateOf(false)
+    private var isNavigating by mutableStateOf(false)
     private var lastKnownLocation: Location? = null
+
+    // Telephony and BLE Managers
+    private lateinit var callSmsManager: CallSmsManager
+    private lateinit var clusterBleManager: BajajClusterBleManager
 
     // In-app update state
     private var availableUpdate by mutableStateOf<AppUpdateInfo?>(null)
@@ -57,16 +65,33 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        callSmsManager = CallSmsManager(this)
+        clusterBleManager = BajajClusterBleManager(this)
+
         requestPermissions()
         handleIncomingIntent(intent)
         checkForAppUpdates()
 
         setContent {
             OpenRideTheme {
-                NavigationScreen(
+                val vehicle by VehicleRepository.vehicle.collectAsState()
+                val trips by VehicleRepository.trips.collectAsState()
+                val activeInstruction by VehicleRepository.activeInstruction.collectAsState()
+
+                MainBottomNavigation(
+                    vehicle = vehicle,
+                    activeInstruction = activeInstruction,
+                    isNavigating = isNavigating,
+                    trips = trips,
                     currentDestination = currentDestination,
                     searchResults = searchResults,
                     isSearching = isSearching,
+                    isAutoSmsEnabled = callSmsManager.isAutoSmsEnabled,
+                    customAutoSmsText = callSmsManager.customAutoSmsText,
+                    onClusterTypeChange = { type ->
+                        VehicleRepository.updateClusterType(type)
+                        Toast.makeText(this, "Switched to ${type.displayName}", Toast.LENGTH_SHORT).show()
+                    },
                     onSearchQueryChange = { query ->
                         performSearch(query)
                     },
@@ -80,8 +105,27 @@ class MainActivity : ComponentActivity() {
                     onStartNavigation = { dest ->
                         startBikeNavigation(dest)
                     },
+                    onStopNavigation = {
+                        stopBikeNavigation()
+                    },
                     onExternalMapsFallback = { dest ->
                         openInExternalMap(dest)
+                    },
+                    onTripClick = { trip ->
+                        Toast.makeText(this, "${trip.title}: ${trip.formattedDistance} traveled", Toast.LENGTH_SHORT).show()
+                    },
+                    onAutoSmsToggle = { enabled ->
+                        callSmsManager.isAutoSmsEnabled = enabled
+                    },
+                    onCustomSmsChange = { text ->
+                        callSmsManager.customAutoSmsText = text
+                    },
+                    onCheckUpdateClick = {
+                        checkForAppUpdates(manual = true)
+                    },
+                    onPairBluetoothClick = {
+                        clusterBleManager.startScan()
+                        Toast.makeText(this, "Scanning for nearby Bajaj motorcycle clusters...", Toast.LENGTH_SHORT).show()
                     }
                 )
 
@@ -143,7 +187,7 @@ class MainActivity : ComponentActivity() {
         }
 
         searchJob = lifecycleScope.launch {
-            delay(350) // Debounce typing
+            delay(300) // Debounce typing
             isSearching = true
             searchResults = LocalSearchManager.searchPlaces(
                 context = this@MainActivity,
@@ -155,6 +199,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startBikeNavigation(destination: ParsedDestination) {
+        isNavigating = true
         ClusterRelayService.startNavigation(this, destination)
         Toast.makeText(
             this,
@@ -163,16 +208,20 @@ class MainActivity : ComponentActivity() {
         ).show()
     }
 
+    private fun stopBikeNavigation() {
+        isNavigating = false
+        ClusterRelayService.stopNavigation(this)
+        Toast.makeText(this, "Navigation stopped.", Toast.LENGTH_SHORT).show()
+    }
+
     private fun openInExternalMap(destination: ParsedDestination) {
         val geoUri = Uri.parse("geo:${destination.latitude},${destination.longitude}?q=${destination.latitude},${destination.longitude}(${Uri.encode(destination.title)})")
         val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
-            // Avoid looping into this same activity
             setPackage("com.google.android.apps.maps")
         }
         try {
             startActivity(mapIntent)
         } catch (e: Exception) {
-            // Fallback to generic chooser
             val genericIntent = Intent(Intent.ACTION_VIEW, geoUri)
             startActivity(Intent.createChooser(genericIntent, "Open with"))
         }
@@ -215,11 +264,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkForAppUpdates() {
+    private fun checkForAppUpdates(manual: Boolean = false) {
         lifecycleScope.launch {
             val update = UpdateChecker.checkForUpdates()
             if (update != null) {
                 availableUpdate = update
+            } else if (manual) {
+                Toast.makeText(this@MainActivity, "You have the latest version installed.", Toast.LENGTH_SHORT).show()
             }
         }
     }
