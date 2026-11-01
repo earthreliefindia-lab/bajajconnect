@@ -35,6 +35,7 @@ release-keystore.properties
 # Analysis scratch directory
 apk_analysis/
 rea_repo/
+release-download/
 
 # OS generated files
 Thumbs.db
