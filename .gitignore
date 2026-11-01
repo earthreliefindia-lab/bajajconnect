@@ -1,0 +1,39 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+
+# Original binary
+Bajaj Ride Connect.apk
+
+# Gradle & Build caches
+.gradle/
+build/
+**/build/
+**/.gradle/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+**/.idea/
+*.iml
+*.iws
+*.ipr
+out/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local configuration & secrets
+local.properties
+*.jks
+*.keystore
+*.p12
+*.key
+signing.properties
+release-keystore.properties
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
