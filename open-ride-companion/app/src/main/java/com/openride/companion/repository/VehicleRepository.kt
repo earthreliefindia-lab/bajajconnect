@@ -72,15 +72,15 @@ object VehicleRepository {
 
     private val _activeInstruction = MutableStateFlow(
         LiveNavInstruction(
-            maneuver = ManeuverType.TURN_RIGHT,
-            instructionText = "In 250 m, turn right onto FC Road",
-            distanceToManeuverMeters = 250,
-            nextStreet = "Fergusson College Road",
-            remainingDistanceMeters = 5400f,
-            remainingTimeSeconds = 720,
-            currentSpeedKmh = 44,
+            maneuver = ManeuverType.STRAIGHT,
+            instructionText = "Ready for navigation",
+            distanceToManeuverMeters = 0,
+            nextStreet = "",
+            remainingDistanceMeters = 0f,
+            remainingTimeSeconds = 0,
+            currentSpeedKmh = 0,
             speedLimitKmh = 50,
-            laneGuidance = "Right 2 Lanes"
+            laneGuidance = ""
         )
     )
     val activeInstruction: StateFlow<LiveNavInstruction> = _activeInstruction.asStateFlow()
@@ -95,5 +95,9 @@ object VehicleRepository {
 
     fun updateInstruction(instruction: LiveNavInstruction) {
         _activeInstruction.value = instruction
+    }
+
+    fun updateSpeed(speedKmh: Int) {
+        _activeInstruction.value = _activeInstruction.value.copy(currentSpeedKmh = speedKmh)
     }
 }

@@ -1,6 +1,7 @@
 package com.openride.companion
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
@@ -15,11 +16,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.openride.companion.cluster.BajajClusterBleManager
 import com.openride.companion.location.LocalSearchManager
 import com.openride.companion.location.LocationIntentParser
 import com.openride.companion.location.ParsedDestination
+import com.openride.companion.location.RouteNavigationManager
+import com.openride.companion.location.RouteResult
+import com.openride.companion.model.LiveNavInstruction
+import com.openride.companion.model.ManeuverType
 import com.openride.companion.repository.VehicleRepository
 import com.openride.companion.service.ClusterRelayService
 import com.openride.companion.telephony.CallSmsManager
@@ -38,7 +48,12 @@ class MainActivity : ComponentActivity() {
     private var searchResults by mutableStateOf<List<ParsedDestination>>(emptyList())
     private var isSearching by mutableStateOf(false)
     private var isNavigating by mutableStateOf(false)
-    private var lastKnownLocation: Location? = null
+    private var lastKnownLocation by mutableStateOf<Location?>(null)
+    private var routeCoordinates by mutableStateOf<List<Pair<Double, Double>>>(emptyList())
+
+    // Location Tracking
+    private var fusedClient: FusedLocationProviderClient? = null
+    private var isLocationTrackingActive = false
 
     // Telephony and BLE Managers
     private lateinit var callSmsManager: CallSmsManager
@@ -56,7 +71,47 @@ class MainActivity : ComponentActivity() {
     ) { permissions ->
         val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
         if (fineLocationGranted) {
-            fetchDeviceLocation()
+            startLocationTracking()
+        }
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(result: LocationResult) {
+            val location = result.lastLocation ?: return
+            lastKnownLocation = location
+
+            // Genuine GPS Speed calculation (0 km/h when standing still)
+            val rawSpeedKmh = if (location.hasSpeed()) (location.speed * 3.6f).toInt() else 0
+            val speedKmh = if (rawSpeedKmh < 2) 0 else rawSpeedKmh
+            VehicleRepository.updateSpeed(speedKmh)
+
+            // If navigating, update remaining distance and next maneuver distance
+            if (isNavigating) {
+                currentDestination?.let { dest ->
+                    val destLoc = Location("").apply {
+                        latitude = dest.latitude
+                        longitude = dest.longitude
+                    }
+                    val remainingMeters = location.distanceTo(destLoc)
+                    val estSpeed = if (speedKmh > 5) speedKmh.toFloat() else 35f
+                    val remainingSeconds = ((remainingMeters / 1000f) / estSpeed * 3600f).toLong()
+
+                    val currentInstruction = VehicleRepository.activeInstruction.value
+                    VehicleRepository.updateInstruction(
+                        currentInstruction.copy(
+                            remainingDistanceMeters = remainingMeters,
+                            remainingTimeSeconds = remainingSeconds,
+                            currentSpeedKmh = speedKmh
+                        )
+                    )
+
+                    // Relay to BLE cluster
+                    clusterBleManager.sendTbtInstruction(
+                        instruction = currentInstruction,
+                        clusterType = VehicleRepository.vehicle.value.clusterType
+                    )
+                }
+            }
         }
     }
 
@@ -65,6 +120,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        fusedClient = LocationServices.getFusedLocationProviderClient(this)
         callSmsManager = CallSmsManager(this)
         clusterBleManager = BajajClusterBleManager(this)
 
@@ -86,6 +142,9 @@ class MainActivity : ComponentActivity() {
                     currentDestination = currentDestination,
                     searchResults = searchResults,
                     isSearching = isSearching,
+                    userLatitude = lastKnownLocation?.latitude,
+                    userLongitude = lastKnownLocation?.longitude,
+                    routeCoordinates = routeCoordinates,
                     isAutoSmsEnabled = callSmsManager.isAutoSmsEnabled,
                     customAutoSmsText = callSmsManager.customAutoSmsText,
                     onClusterTypeChange = { type ->
@@ -101,6 +160,21 @@ class MainActivity : ComponentActivity() {
                     onDestinationSelected = { dest ->
                         currentDestination = dest
                         searchResults = emptyList()
+
+                        // Calculate and show route preview on map immediately
+                        lifecycleScope.launch {
+                            val startLat = lastKnownLocation?.latitude ?: 18.5204
+                            val startLng = lastKnownLocation?.longitude ?: 73.8567
+                            val route = RouteNavigationManager.calculateRoute(
+                                startLat = startLat,
+                                startLng = startLng,
+                                destLat = dest.latitude,
+                                destLng = dest.longitude
+                            )
+                            if (route != null) {
+                                routeCoordinates = route.coordinates
+                            }
+                        }
                     },
                     onStartNavigation = { dest ->
                         startBikeNavigation(dest)
@@ -159,7 +233,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val parsed = LocationIntentParser.parseIntent(this@MainActivity, incomingIntent)
             if (parsed != null) {
-                // Update with distance if current location is known
                 val withDistance = lastKnownLocation?.let { loc ->
                     val destLoc = Location("").apply {
                         latitude = parsed.latitude
@@ -169,6 +242,20 @@ class MainActivity : ComponentActivity() {
                 } ?: parsed
 
                 currentDestination = withDistance
+
+                // Compute route preview
+                val startLat = lastKnownLocation?.latitude ?: 18.5204
+                val startLng = lastKnownLocation?.longitude ?: 73.8567
+                val route = RouteNavigationManager.calculateRoute(
+                    startLat = startLat,
+                    startLng = startLng,
+                    destLat = parsed.latitude,
+                    destLng = parsed.longitude
+                )
+                if (route != null) {
+                    routeCoordinates = route.coordinates
+                }
+
                 Toast.makeText(
                     this@MainActivity,
                     "Destination received: ${parsed.title}",
@@ -187,7 +274,7 @@ class MainActivity : ComponentActivity() {
         }
 
         searchJob = lifecycleScope.launch {
-            delay(300) // Debounce typing
+            delay(350) // Debounce typing
             isSearching = true
             searchResults = LocalSearchManager.searchPlaces(
                 context = this@MainActivity,
@@ -201,29 +288,81 @@ class MainActivity : ComponentActivity() {
     private fun startBikeNavigation(destination: ParsedDestination) {
         isNavigating = true
         ClusterRelayService.startNavigation(this, destination)
-        Toast.makeText(
-            this,
-            "Navigating to ${destination.title}. Relaying turns to bike cluster...",
-            Toast.LENGTH_LONG
-        ).show()
+
+        lifecycleScope.launch {
+            val startLat = lastKnownLocation?.latitude ?: 18.5204
+            val startLng = lastKnownLocation?.longitude ?: 73.8567
+
+            val route = RouteNavigationManager.calculateRoute(
+                startLat = startLat,
+                startLng = startLng,
+                destLat = destination.latitude,
+                destLng = destination.longitude
+            )
+
+            if (route != null) {
+                routeCoordinates = route.coordinates
+
+                val firstStep = route.steps.firstOrNull()
+                VehicleRepository.updateInstruction(
+                    LiveNavInstruction(
+                        maneuver = firstStep?.maneuverType ?: ManeuverType.STRAIGHT,
+                        instructionText = firstStep?.instruction ?: "Proceed towards destination",
+                        distanceToManeuverMeters = firstStep?.distanceMeters ?: 0,
+                        nextStreet = firstStep?.streetName ?: destination.title,
+                        remainingDistanceMeters = route.totalDistanceMeters,
+                        remainingTimeSeconds = route.totalDurationSeconds,
+                        currentSpeedKmh = 0,
+                        speedLimitKmh = 50,
+                        laneGuidance = ""
+                    )
+                )
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Navigation started! Relaying turns to bike cluster...",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        startLocationTracking()
     }
 
     private fun stopBikeNavigation() {
         isNavigating = false
+        routeCoordinates = emptyList()
         ClusterRelayService.stopNavigation(this)
-        Toast.makeText(this, "Navigation stopped.", Toast.LENGTH_SHORT).show()
+
+        VehicleRepository.updateInstruction(
+            LiveNavInstruction(
+                maneuver = ManeuverType.STRAIGHT,
+                instructionText = "Ready for navigation",
+                distanceToManeuverMeters = 0,
+                nextStreet = "",
+                remainingDistanceMeters = 0f,
+                remainingTimeSeconds = 0,
+                currentSpeedKmh = 0,
+                speedLimitKmh = 50,
+                laneGuidance = ""
+            )
+        )
+
+        Toast.makeText(this, "Navigation ended.", Toast.LENGTH_SHORT).show()
     }
 
     private fun openInExternalMap(destination: ParsedDestination) {
-        val geoUri = Uri.parse("geo:${destination.latitude},${destination.longitude}?q=${destination.latitude},${destination.longitude}(${Uri.encode(destination.title)})")
-        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
+        // Direct turn-by-turn driving mode in Google Maps
+        val navUri = Uri.parse("google.navigation:q=${destination.latitude},${destination.longitude}&mode=d")
+        val mapIntent = Intent(Intent.ACTION_VIEW, navUri).apply {
             setPackage("com.google.android.apps.maps")
         }
         try {
             startActivity(mapIntent)
         } catch (e: Exception) {
+            val geoUri = Uri.parse("geo:${destination.latitude},${destination.longitude}?q=${destination.latitude},${destination.longitude}(${Uri.encode(destination.title)})")
             val genericIntent = Intent(Intent.ACTION_VIEW, geoUri)
-            startActivity(Intent.createChooser(genericIntent, "Open with"))
+            startActivity(Intent.createChooser(genericIntent, "Navigate with"))
         }
     }
 
@@ -247,21 +386,49 @@ class MainActivity : ComponentActivity() {
         if (missing.isNotEmpty()) {
             permissionLauncher.launch(missing.toTypedArray())
         } else {
-            fetchDeviceLocation()
+            startLocationTracking()
         }
     }
 
-    private fun fetchDeviceLocation() {
+    @SuppressLint("MissingPermission")
+    private fun startLocationTracking() {
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-            val fusedClient = LocationServices.getFusedLocationProviderClient(this)
-            fusedClient.lastLocation.addOnSuccessListener { location ->
+            return
+        }
+
+        val client = fusedClient ?: LocationServices.getFusedLocationProviderClient(this).also { fusedClient = it }
+
+        client.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
                 lastKnownLocation = location
             }
         }
+
+        if (!isLocationTrackingActive) {
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+                .setMinUpdateIntervalMillis(500)
+                .setMinUpdateDistanceMeters(1f)
+                .build()
+
+            client.requestLocationUpdates(request, locationCallback, mainLooper)
+            isLocationTrackingActive = true
+        }
+    }
+
+    private fun stopLocationTracking() {
+        if (isLocationTrackingActive) {
+            fusedClient?.removeLocationUpdates(locationCallback)
+            isLocationTrackingActive = false
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopLocationTracking()
     }
 
     private fun checkForAppUpdates(manual: Boolean = false) {

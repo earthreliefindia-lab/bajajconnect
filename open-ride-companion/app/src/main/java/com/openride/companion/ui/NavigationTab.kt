@@ -34,6 +34,9 @@ fun NavigationTab(
     currentDestination: ParsedDestination?,
     searchResults: List<ParsedDestination>,
     isSearching: Boolean,
+    userLatitude: Double?,
+    userLongitude: Double?,
+    routeCoordinates: List<Pair<Double, Double>>,
     onSearchQueryChange: (String) -> Unit,
     onCategorySelected: (NearbyCategory) -> Unit,
     onDestinationSelected: (ParsedDestination) -> Unit,
@@ -48,19 +51,19 @@ fun NavigationTab(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // --- 1. Live Turn-by-Turn Maneuver HUD (If active navigation is running) ---
+        // --- 1. Live Turn-by-Turn Maneuver HUD (Active Navigation) ---
         if (isNavigating) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(bottom = 8.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 border = ButtonDefaults.outlinedButtonBorder
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -90,25 +93,35 @@ fun NavigationTab(
                             }
                         }
 
-                        Text(
-                            text = "${activeInstruction.currentSpeedKmh} km/h",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        // Real-time GPS Speed
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${activeInstruction.currentSpeedKmh}",
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "km/h",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Maneuver Icon
                         Surface(
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(52.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 val icon = when (activeInstruction.maneuver) {
@@ -123,17 +136,17 @@ fun NavigationTab(
                                     imageVector = icon,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = activeInstruction.formattedManeuverDistance,
-                                fontSize = 24.sp,
+                                fontSize = 22.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -145,17 +158,18 @@ fun NavigationTab(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text(
-                                text = "Onto ${activeInstruction.nextStreet}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
+                            if (activeInstruction.nextStreet.isNotBlank()) {
+                                Text(
+                                    text = "Onto ${activeInstruction.nextStreet}",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Remaining ETA and Stop Ride
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -168,19 +182,43 @@ fun NavigationTab(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
 
-                        TextButton(
-                            onClick = onStopNavigation,
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF5252))
-                        ) {
-                            Text("End Nav", fontWeight = FontWeight.Bold)
+                        Row {
+                            currentDestination?.let { dest ->
+                                IconButton(onClick = { onExternalMapsFallback(dest) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Map,
+                                        contentDescription = "Open in Google Maps",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            TextButton(
+                                onClick = onStopNavigation,
+                                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF5252))
+                            ) {
+                                Text("End Nav", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(10.dp))
         }
 
-        // --- 2. Search Bar for Places & Addresses ---
+        // --- 2. Interactive In-App Map ---
+        NavigationMapView(
+            userLatitude = userLatitude,
+            userLongitude = userLongitude,
+            destination = currentDestination,
+            routeCoordinates = routeCoordinates,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (isNavigating) 240.dp else 220.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- 3. Search Bar for Places & Addresses ---
         OutlinedTextField(
             value = searchQuery,
             onValueChange = {
@@ -216,9 +254,9 @@ fun NavigationTab(
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // --- 3. Mappls Nearby Category Chips ---
+        // --- 4. Nearby Category Quick Chips ---
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -250,10 +288,11 @@ fun NavigationTab(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // --- 4. Incoming WhatsApp / Shared Location Card ---
-        currentDestination?.let { dest ->
+        // --- 5. Selected Destination / Incoming WhatsApp Location Card ---
+        if (!isNavigating && currentDestination != null) {
+            val dest = currentDestination
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -262,7 +301,7 @@ fun NavigationTab(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = ButtonDefaults.outlinedButtonBorder
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -273,7 +312,7 @@ fun NavigationTab(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "LOCATION FROM: ${dest.sourceApp.uppercase()}",
+                                text = "DESTINATION: ${dest.sourceApp.uppercase()}",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -291,11 +330,11 @@ fun NavigationTab(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = dest.title,
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -307,20 +346,12 @@ fun NavigationTab(
                             text = addr,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "GPS: ${dest.formattedCoordinates}",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -344,28 +375,29 @@ fun NavigationTab(
                             onClick = { onExternalMapsFallback(dest) },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Map, contentDescription = "Open External", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Map, contentDescription = "Open in Google Maps", modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Google Maps", fontSize = 12.sp)
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // --- 5. Search Results / Places List ---
+        // --- 6. Search Results List ---
         if (isSearching) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (searchResults.isNotEmpty()) {
             Text(
-                text = "NEARBY RESULTS",
-                fontSize = 12.sp,
+                text = "SEARCH RESULTS (${searchResults.size})",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 4.dp)
@@ -373,7 +405,7 @@ fun NavigationTab(
 
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(searchResults) { result ->
                     Surface(
@@ -385,27 +417,27 @@ fun NavigationTab(
                         border = ButtonDefaults.outlinedButtonBorder
                     ) {
                         Row(
-                            modifier = Modifier.padding(14.dp),
+                            modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = result.title,
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 result.address?.let { addr ->
                                     Text(
                                         text = addr,
-                                        fontSize = 12.sp,
+                                        fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -416,7 +448,7 @@ fun NavigationTab(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = dist,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.secondary
                                 )

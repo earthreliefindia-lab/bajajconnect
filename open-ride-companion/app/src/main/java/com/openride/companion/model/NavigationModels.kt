@@ -13,15 +13,15 @@ enum class ManeuverType(val clusterCode: Int, val iconName: String) {
 }
 
 data class LiveNavInstruction(
-    val maneuver: ManeuverType = ManeuverType.DEPART,
-    val instructionText: String = "Proceed to designated route",
-    val distanceToManeuverMeters: Int = 350,
-    val nextStreet: String = "FC Road",
-    val remainingDistanceMeters: Float = 4200f,
-    val remainingTimeSeconds: Long = 680,
-    val currentSpeedKmh: Int = 42,
+    val maneuver: ManeuverType = ManeuverType.STRAIGHT,
+    val instructionText: String = "Proceed along route",
+    val distanceToManeuverMeters: Int = 0,
+    val nextStreet: String = "",
+    val remainingDistanceMeters: Float = 0f,
+    val remainingTimeSeconds: Long = 0,
+    val currentSpeedKmh: Int = 0,
     val speedLimitKmh: Int = 50,
-    val laneGuidance: String = "Keep in Left 2 Lanes"
+    val laneGuidance: String = ""
 ) {
     val formattedManeuverDistance: String
         get() = if (distanceToManeuverMeters >= 1000) {
