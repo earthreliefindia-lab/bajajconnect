@@ -387,17 +387,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openInExternalMap(destination: ParsedDestination) {
-        // Direct turn-by-turn driving mode in Google Maps
-        val navUri = Uri.parse("google.navigation:q=${destination.latitude},${destination.longitude}&mode=d")
+        // Enforce BIKE MODE ALWAYS in Google Maps:
+        // 'mode=l' activates the official Google Maps Two-Wheeler / Motorcycle mode in India
+        val navUri = Uri.parse("google.navigation:q=${destination.latitude},${destination.longitude}&mode=l")
         val mapIntent = Intent(Intent.ACTION_VIEW, navUri).apply {
             setPackage("com.google.android.apps.maps")
         }
         try {
             startActivity(mapIntent)
         } catch (e: Exception) {
-            val geoUri = Uri.parse("geo:${destination.latitude},${destination.longitude}?q=${destination.latitude},${destination.longitude}(${Uri.encode(destination.title)})")
-            val genericIntent = Intent(Intent.ACTION_VIEW, geoUri)
-            startActivity(Intent.createChooser(genericIntent, "Navigate with"))
+            val webUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=two-wheeler")
+            val genericIntent = Intent(Intent.ACTION_VIEW, webUri)
+            startActivity(Intent.createChooser(genericIntent, "Two-Wheeler Bike Navigation"))
         }
     }
 

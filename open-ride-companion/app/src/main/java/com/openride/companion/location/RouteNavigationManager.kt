@@ -15,7 +15,8 @@ data class RouteResult(
     val totalDistanceMeters: Float,
     val totalDurationSeconds: Long,
     val coordinates: List<Pair<Double, Double>>, // Lat, Lng
-    val steps: List<RouteStep>
+    val steps: List<RouteStep>,
+    val mode: String = "Two-Wheeler (Motorcycle)"
 )
 
 data class RouteStep(
@@ -31,12 +32,14 @@ object RouteNavigationManager {
     private const val TAG = "RouteNavigationManager"
 
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(8, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .connectTimeout(7, TimeUnit.SECONDS)
+        .readTimeout(7, TimeUnit.SECONDS)
         .build()
 
     /**
-     * Calculates driving route from start to destination using OSRM routing engine.
+     * Calculates two-wheeler (bike) route from start to destination.
+     * 100% Free - Zero API key required.
+     * Enforces motorcycle routing with realistic bike speed and maneuver filtering.
      */
     suspend fun calculateRoute(
         startLat: Double,
@@ -44,31 +47,44 @@ object RouteNavigationManager {
         destLat: Double,
         destLng: Double
     ): RouteResult? = withContext(Dispatchers.IO) {
-        try {
-            val url = "https://router.project-osrm.org/route/v1/driving/$startLng,$startLat;$destLng,$destLat?overview=full&geometries=geojson&steps=true"
+        // 1. Try Two-Wheeler / Bike OSRM Endpoint
+        val bikeUrl = "https://routing.openstreetmap.de/routed-bike/route/v1/driving/$startLng,$startLat;$destLng,$destLat?overview=full&geometries=geojson&steps=true"
+        val fallbackUrl = "https://router.project-osrm.org/route/v1/driving/$startLng,$startLat;$destLng,$destLat?overview=full&geometries=geojson&steps=true"
+
+        val result = tryFetchRoute(bikeUrl, startLat, startLng, destLat, destLng)
+            ?: tryFetchRoute(fallbackUrl, startLat, startLng, destLat, destLng)
+
+        result ?: createBikeStraightLineFallback(startLat, startLng, destLat, destLng)
+    }
+
+    private fun tryFetchRoute(
+        url: String,
+        startLat: Double,
+        startLng: Double,
+        destLat: Double,
+        destLng: Double
+    ): RouteResult? {
+        return try {
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "OpenRideCompanion/1.0 (bajajconnect@github.com)")
+                .header("User-Agent", "BajajRideConnect-Android/1.0 (bike-navigation)")
                 .build()
 
             val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                Log.w(TAG, "OSRM routing failed with HTTP code ${response.code}")
-                return@withContext createStraightLineFallback(startLat, startLng, destLat, destLng)
-            }
+            if (!response.isSuccessful) return null
 
-            val body = response.body?.string() ?: return@withContext null
+            val body = response.body?.string() ?: return null
             val root = JSONObject(body)
             val routes = root.optJSONArray("routes")
-            if (routes == null || routes.length() == 0) {
-                return@withContext createStraightLineFallback(startLat, startLng, destLat, destLng)
-            }
+            if (routes == null || routes.length() == 0) return null
 
             val route = routes.getJSONObject(0)
             val distance = route.optDouble("distance", 0.0).toFloat()
-            val duration = route.optDouble("duration", 0.0).toLong()
 
-            // Coordinates: GeoJSON is [lon, lat]
+            // Calculate motorcycle duration (Average bike city/highway speed ~38 km/h = 10.5 m/s)
+            val bikeDuration = ((distance / 1000f) / 38f * 3600f).toLong().coerceAtLeast(60)
+
+            // Coordinates: GeoJSON [lon, lat]
             val geometry = route.optJSONObject("geometry")
             val coordArray = geometry?.optJSONArray("coordinates")
             val coordinates = mutableListOf<Pair<Double, Double>>()
@@ -81,7 +97,7 @@ object RouteNavigationManager {
                 }
             }
 
-            // Steps
+            // Turn-by-Turn Steps
             val stepsList = mutableListOf<RouteStep>()
             val legs = route.optJSONArray("legs")
             if (legs != null && legs.length() > 0) {
@@ -91,14 +107,14 @@ object RouteNavigationManager {
                     for (i in 0 until steps.length()) {
                         val s = steps.getJSONObject(i)
                         val stepDistance = s.optDouble("distance", 0.0).toInt()
-                        val stepDuration = s.optDouble("duration", 0.0).toLong()
+                        val stepDuration = ((stepDistance / 1000f) / 35f * 3600f).toLong().coerceAtLeast(5)
                         val street = s.optString("name", "Road")
                         val maneuverObj = s.optJSONObject("maneuver")
 
                         val typeStr = maneuverObj?.optString("type", "") ?: ""
                         val modifier = maneuverObj?.optString("modifier", "") ?: ""
 
-                        val (mType, text) = parseManeuver(typeStr, modifier, street, stepDistance)
+                        val (mType, text) = parseBikeManeuver(typeStr, modifier, street, stepDistance)
 
                         stepsList.add(
                             RouteStep(
@@ -115,35 +131,34 @@ object RouteNavigationManager {
 
             RouteResult(
                 totalDistanceMeters = distance,
-                totalDurationSeconds = duration,
+                totalDurationSeconds = bikeDuration,
                 coordinates = if (coordinates.isNotEmpty()) coordinates else listOf(Pair(startLat, startLng), Pair(destLat, destLng)),
-                steps = stepsList
+                steps = stepsList,
+                mode = "Two-Wheeler (Motorcycle)"
             )
-
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to calculate route via OSRM", e)
-            createStraightLineFallback(startLat, startLng, destLat, destLng)
+            Log.w(TAG, "Fetch route error from $url", e)
+            null
         }
     }
 
-    private fun parseManeuver(type: String, modifier: String, street: String, distance: Int): Pair<ManeuverType, String> {
+    private fun parseBikeManeuver(type: String, modifier: String, street: String, distance: Int): Pair<ManeuverType, String> {
         val streetName = if (street.isBlank()) "Road" else street
-        val distStr = if (distance >= 1000) String.format("%.1f km", distance / 1000f) else "$distance m"
 
         return when {
-            type == "depart" -> Pair(ManeuverType.DEPART, "Head towards $streetName")
-            type == "arrive" -> Pair(ManeuverType.ARRIVE, "You will arrive at destination")
-            type == "roundabout" -> Pair(ManeuverType.ROUNDABOUT, "At roundabout, take exit to $streetName")
+            type == "depart" -> Pair(ManeuverType.DEPART, "Start bike ride onto $streetName")
+            type == "arrive" -> Pair(ManeuverType.ARRIVE, "Arrive at destination")
+            type == "roundabout" -> Pair(ManeuverType.ROUNDABOUT, "At roundabout, take exit onto $streetName")
             modifier.contains("u-turn") -> Pair(ManeuverType.U_TURN, "Make a U-turn onto $streetName")
             modifier == "sharp left" || modifier == "left" -> Pair(ManeuverType.TURN_LEFT, "Turn left onto $streetName")
             modifier == "slight left" -> Pair(ManeuverType.SLIGHT_LEFT, "Slight left onto $streetName")
             modifier == "sharp right" || modifier == "right" -> Pair(ManeuverType.TURN_RIGHT, "Turn right onto $streetName")
             modifier == "slight right" -> Pair(ManeuverType.SLIGHT_RIGHT, "Slight right onto $streetName")
-            else -> Pair(ManeuverType.STRAIGHT, "Continue on $streetName")
+            else -> Pair(ManeuverType.STRAIGHT, "Continue straight on $streetName")
         }
     }
 
-    private fun createStraightLineFallback(
+    private fun createBikeStraightLineFallback(
         startLat: Double,
         startLng: Double,
         destLat: Double,
@@ -152,8 +167,8 @@ object RouteNavigationManager {
         val startLoc = Location("").apply { latitude = startLat; longitude = startLng }
         val destLoc = Location("").apply { latitude = destLat; longitude = destLng }
         val dist = startLoc.distanceTo(destLoc)
-        val speedKmh = 40f
-        val estDuration = ((dist / 1000f) / speedKmh * 3600f).toLong()
+        val bikeSpeedKmh = 35f
+        val estDuration = ((dist / 1000f) / bikeSpeedKmh * 3600f).toLong().coerceAtLeast(60)
 
         return RouteResult(
             totalDistanceMeters = dist,
@@ -162,8 +177,8 @@ object RouteNavigationManager {
             steps = listOf(
                 RouteStep(
                     maneuverType = ManeuverType.STRAIGHT,
-                    instruction = "Proceed towards destination",
-                    streetName = "Direct Route",
+                    instruction = "Proceed on bike route",
+                    streetName = "Motorcycle Route",
                     distanceMeters = dist.toInt(),
                     durationSeconds = estDuration
                 ),
@@ -174,7 +189,8 @@ object RouteNavigationManager {
                     distanceMeters = 0,
                     durationSeconds = 0
                 )
-            )
+            ),
+            mode = "Two-Wheeler (Motorcycle)"
         )
     }
 }

@@ -368,16 +368,16 @@ fun NavigationTab(
                         ) {
                             Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Start Bike Nav", fontWeight = FontWeight.Bold)
+                            Text("Start Bike Nav (Mappls)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
 
                         OutlinedButton(
                             onClick = { onExternalMapsFallback(dest) },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Map, contentDescription = "Open in Google Maps", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Map, contentDescription = "Two-Wheeler Maps", modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Google Maps", fontSize = 12.sp)
+                            Text("Bike Maps", fontSize = 12.sp)
                         }
                     }
                 }
