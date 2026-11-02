@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.openride.companion">
 
     <!-- Location & Navigation Permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -154,13 +155,6 @@
             </intent-filter>
 
         </activity>
-
-        <!-- Service for Background Navigation & BLE Cluster Data Relay -->
-        <service
-            android:name=".service.ClusterRelayService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location|connectedDevice" />
 
         <!-- FileProvider for In-App APK Updates -->
         <provider

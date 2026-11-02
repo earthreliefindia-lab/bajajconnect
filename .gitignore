@@ -11,6 +11,8 @@ Bajaj Ride Connect.apk
 build/
 **/build/
 **/.gradle/
+.kotlin/
+**/.kotlin/
 
 # Android Studio / IntelliJ IDEA
 .idea/
@@ -36,6 +38,11 @@ release-keystore.properties
 apk_analysis/
 rea_repo/
 release-download/
+
+# Antigravity & Teamwork Agent Metadata
+.agents/
+.system_generated/
+open-ride-companion/.git
 
 # OS generated files
 Thumbs.db
