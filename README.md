@@ -8,14 +8,15 @@
 
 <p align="center">
   <a href="https://github.com/earthreliefindia-lab/bajajconnect/releases/latest">
-    <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APK-v1.0.0--beta.4-0066FF?style=for-the-badge&logo=android&logoColor=white" alt="Download Latest APK"/>
+    <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APK-v1.0.0--beta.8-0066FF?style=for-the-badge&logo=android&logoColor=white" alt="Download Latest APK"/>
   </a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Android-14%20%7C%2015%20%7C%2016-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android Version"/>
-  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20%2B%20Material%203-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
-  <img src="https://img.shields.io/badge/Design%20System-Bajaj%20Royal%20Blue-0066FF?style=flat-square&logo=motorcycle&logoColor=white" alt="Bajaj Blue"/>
+  <img src="https://img.shields.io/badge/UI-Android%2016%20Stroke%20%2B%20Material%20You-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Android 16 Stroke"/>
+  <img src="https://img.shields.io/badge/Theming-Wallpaper%20Monet%20Palette-FF6F00?style=flat-square&logo=google&logoColor=white" alt="Wallpaper Theming"/>
+  <img src="https://img.shields.io/badge/Maps-Mappls%20Free%20%2B%20API%20Key-00BFA5?style=flat-square&logo=openstreetmap&logoColor=white" alt="Mappls Maps"/>
   <img src="https://img.shields.io/badge/Target%20Device-Samsung%20Galaxy%20S23%20Ultra-1428A0?style=flat-square&logo=samsung&logoColor=white" alt="Samsung S23 Ultra"/>
   <img src="https://img.shields.io/badge/Build-Gradle%20Kotlin%20DSL-02303A?style=flat-square&logo=gradle&logoColor=white" alt="Gradle"/>
 </p>
@@ -32,19 +33,22 @@
 
 Through in-depth static reverse-engineering and inspection of the original **`Bajaj Ride Connect.apk`** (utilizing AAPT, Hermes bytecode string extraction, and resource mapping), this project completely reconstructs the application into clean, native Android code while retaining its visual identity, screen flows, and motorcycle features:
 
-1. **Authentic Bajaj Design System:** Recreated with the iconic **Bajaj Royal Blue** (`#0066FF`), deep navy card containers (`#0E1726`), electric cyan accents (`#00E5FF`), and high-contrast typography optimized for Samsung Dynamic AMOLED displays.
-2. **Multi-Model Garage:** Supports the full family of connected Bajaj motorcycles:
+1. **Minimalist Google & Android 16 Stroke UI:** Redesigned with Android 16 squircle geometry (`RoundedCornerShape(28.dp)`), subtle `1.dp` hairline stroke borders (`outlineVariant.copy(alpha = 0.45f)`), and tonal surface containers.
+2. **Dynamic Wallpaper Monet Palette:** Built with Jetpack Compose Material 3 `dynamicDarkColorScheme(context)` and `dynamicLightColorScheme(context)` to automatically extract and adapt to the rider's active device wallpaper on Android 12–16, alongside System / Dark / Light theme selection.
+3. **Mappls Maps Dual Engine:** 
+   * **100% Free Mode:** Preconfigured with zero API key required, unlimited high-contrast tiles, and motorcycle routing.
+   * **Custom Developer API Key:** Optional user-provided Mappls key with automatic failover to the free raster layer upon tile errors.
+4. **Permanent Bike Mode Always:** Two-wheeler routing, motorcycle radar marker, and true GPS speed telemetry (displays `0 km/h` when standing still).
+5. **Universal WhatsApp & Google Maps Intent Handler:** Seamless integration into Android's "Open with" app chooser for `geo:`, `google.navigation:`, `maps.app.goo.gl`, and coordinate pins without app crashes or unhandled opaque URI exceptions.
+6. **Multi-Model Garage:** Supports the full family of connected Bajaj motorcycles:
    * **Pulsar Series:** `Pulsar NS400Z`, `Pulsar N250`, `Pulsar N160`, `Pulsar 150`, `Pulsar RS200`
    * **Dominar Series:** `Dominar 400 Dual Channel ABS`, `Dominar 250`, `Dominar 220`
    * **Chetak Series:** `Chetak EV (Premium)`
-3. **Dynamic ABS & Engine Ride Modes:**
+7. **Dynamic ABS & Engine Ride Modes:**
    * 🛣️ **Road Mode:** Balanced for city and highway roads, offering ideal everyday comfort and traction.
    * 🌧️ **Rain Mode:** Smoother ABS intervention with enhanced traction control and stability on wet surfaces.
    * 🏜️ **Off-Road Mode:** Minimum stopping distance with adequate tire traction on unpaved gravel/dirt roads.
    * ⚡ **Sport Mode:** Reduced ABS intervention for aggressive braking and maximum throttle responsiveness.
-4. **Interactive In-App Map & Routing:** Embedded dark-theme map with real OSRM road routing, pulsing rider marker, destination pins, and high-visibility neon route line.
-5. **Accurate GPS Telemetry:** Genuine speed tracking that reads `0 km/h` when standing still (no mock speeds).
-6. **Smart Open Navigation & WhatsApp Links:** Instant resolution of shortened Google Maps (`maps.app.goo.gl`) links, raw coordinates, and integration into Android's "Open with" app chooser.
 
 ---
 
@@ -109,7 +113,7 @@ Download the latest verified release APK directly:
 
 ```powershell
 # Or download via GitHub CLI:
-gh release download v1.0.0-beta.4 --repo earthreliefindia-lab/bajajconnect --pattern "*.apk" --dir ".\release-download"
+gh release download v1.0.0-beta.8 --repo earthreliefindia-lab/bajajconnect --pattern "*.apk" --dir ".\release-download"
 ```
 
 1. Transfer the `.apk` file to your device (e.g. via Quick Share or WhatsApp).
