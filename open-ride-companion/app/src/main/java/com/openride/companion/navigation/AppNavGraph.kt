@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -21,11 +24,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import com.openride.companion.data.DefaultDocumentLockerRepository
+import com.openride.companion.data.DefaultTripRepository
+import com.openride.companion.data.DocumentLockerRepository
+import com.openride.companion.data.TripRepository
 import com.openride.companion.data.auth.AuthRepository
 import com.openride.companion.data.preferences.SessionPreferences
 import com.openride.companion.data.profile.ProfileRepository
 import com.openride.companion.data.sos.EmergencySosRepository
 import com.openride.companion.data.vehicle.VehicleRepository
+import com.openride.companion.navigation.state.NavigationManager
+import com.openride.companion.ui.screens.DocumentLockerScreen
+import com.openride.companion.ui.screens.NavigationScreen
+import com.openride.companion.ui.screens.TripDetailScreen
+import com.openride.companion.ui.screens.TripsScreen
 import com.openride.companion.ui.screens.auth.LoginScreen
 import com.openride.companion.ui.screens.auth.LoginViewModel
 import com.openride.companion.ui.screens.auth.OtpVerificationScreen
@@ -50,7 +62,10 @@ fun AppNavGraph(
     authRepository: AuthRepository,
     vehicleRepository: VehicleRepository,
     profileRepository: ProfileRepository,
-    sosRepository: EmergencySosRepository
+    sosRepository: EmergencySosRepository,
+    tripRepository: TripRepository = remember { DefaultTripRepository() },
+    documentRepository: DocumentLockerRepository = remember { DefaultDocumentLockerRepository() },
+    navigationManager: NavigationManager = remember { NavigationManager() }
 ) {
     val initialScreen: Screen = if (!sessionPreferences.isOnboardingCompleted()) {
         Screen.Onboarding
@@ -79,8 +94,10 @@ fun AppNavGraph(
     }
 
     val isMainTabScreen = currentScreen is Screen.Garage ||
-            currentScreen is Screen.Profile ||
-            currentScreen is Screen.Sos
+            currentScreen is Screen.Navigation ||
+            currentScreen is Screen.Trips ||
+            currentScreen is Screen.Sos ||
+            currentScreen is Screen.Profile
 
     Scaffold(
         bottomBar = {
@@ -98,6 +115,42 @@ fun AppNavGraph(
                         },
                         icon = { Icon(Icons.AutoMirrored.Filled.DirectionsBike, contentDescription = "Garage") },
                         label = { Text("Garage", fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CyanAccent,
+                            selectedTextColor = CyanAccent,
+                            unselectedIconColor = SurfaceDarkTextSec,
+                            unselectedTextColor = SurfaceDarkTextSec,
+                            indicatorColor = ElevatedNavy
+                        )
+                    )
+
+                    NavigationBarItem(
+                        selected = currentScreen is Screen.Navigation,
+                        onClick = {
+                            if (currentScreen !is Screen.Navigation) {
+                                navigateTo(Screen.Navigation)
+                            }
+                        },
+                        icon = { Icon(Icons.Default.Navigation, contentDescription = "Navigate") },
+                        label = { Text("Navigate", fontSize = 11.sp) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CyanAccent,
+                            selectedTextColor = CyanAccent,
+                            unselectedIconColor = SurfaceDarkTextSec,
+                            unselectedTextColor = SurfaceDarkTextSec,
+                            indicatorColor = ElevatedNavy
+                        )
+                    )
+
+                    NavigationBarItem(
+                        selected = currentScreen is Screen.Trips,
+                        onClick = {
+                            if (currentScreen !is Screen.Trips) {
+                                navigateTo(Screen.Trips)
+                            }
+                        },
+                        icon = { Icon(Icons.Default.Route, contentDescription = "Trips") },
+                        label = { Text("Trips", fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = CyanAccent,
                             selectedTextColor = CyanAccent,
@@ -193,6 +246,37 @@ fun AppNavGraph(
                         viewModel = viewModel,
                         onNavigateToProfile = { navigateTo(Screen.Profile) },
                         onNavigateToSos = { navigateTo(Screen.Sos) }
+                    )
+                }
+
+                is Screen.Navigation -> {
+                    NavigationScreen(
+                        navigationManager = navigationManager,
+                        onNavigateBack = { navigateBack() }
+                    )
+                }
+
+                is Screen.Trips -> {
+                    TripsScreen(
+                        tripRepository = tripRepository,
+                        onTripClick = { tripId ->
+                            navigateTo(Screen.TripDetail(tripId))
+                        }
+                    )
+                }
+
+                is Screen.TripDetail -> {
+                    TripDetailScreen(
+                        tripId = screen.tripId,
+                        tripRepository = tripRepository,
+                        onNavigateBack = { navigateBack() }
+                    )
+                }
+
+                is Screen.DocumentLocker -> {
+                    DocumentLockerScreen(
+                        documentRepository = documentRepository,
+                        onNavigateBack = { navigateBack() }
                     )
                 }
 
