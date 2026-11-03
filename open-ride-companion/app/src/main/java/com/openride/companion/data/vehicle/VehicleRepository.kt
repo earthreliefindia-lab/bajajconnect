@@ -20,6 +20,7 @@ interface VehicleRepository {
     suspend fun removeVehicle(vehicleId: String): Result<Unit>
     suspend fun updateOdometer(vehicleId: String, newOdoKm: Int): Result<Unit>
     suspend fun updateTelemetry(vehicleId: String, fuelPct: Int, batteryPct: Int, voltage12V: Float): Result<Unit>
+    suspend fun resetToFresh(): Result<Unit>
 }
 
 /**
@@ -194,6 +195,23 @@ class VehicleRepositoryImpl : VehicleRepository {
                 } else it
             }
         }
+        return Result.success(Unit)
+    }
+
+    override suspend fun resetToFresh(): Result<Unit> {
+        val freshBike = Vehicle(
+            id = "BIKE_PULSAR_N160",
+            vin = "MD2A11CY4P8710001",
+            registrationNumber = "MH 12 TC 0001",
+            modelSpec = GarageCatalog.PULSAR_N160,
+            odometerKm = 0,
+            fuelLevelPercentage = 100,
+            batteryLevelPercentage = 100,
+            batteryVoltage12V = 12.8f,
+            isActive = true
+        )
+        _vehiclesState.value = listOf(freshBike)
+        _activeVehicle.value = freshBike
         return Result.success(Unit)
     }
 }

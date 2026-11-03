@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +33,7 @@ fun RideNotesScreen(
 ) {
     val notes by RideNotesRepository.notes.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -39,6 +42,13 @@ fun RideNotesScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (notes.isNotEmpty()) {
+                        IconButton(onClick = { showClearConfirm = true }) {
+                            Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = "Clear All Notes", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -58,46 +68,105 @@ fun RideNotesScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val pinnedNotes = notes.filter { it.isPinned }
-            val otherNotes = notes.filterNot { it.isPinned }
-
-            if (pinnedNotes.isNotEmpty()) {
-                item {
-                    Text(
-                        "PINNED",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+        if (notes.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(56.dp)
                     )
-                }
-                items(pinnedNotes) { note ->
-                    NoteCard(note = note, onTogglePin = { RideNotesRepository.togglePin(note.id) }, onDelete = { RideNotesRepository.deleteNote(note.id) })
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No Notes Yet",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Tap the + button to record maintenance logs, chain lubing, or ride journal thoughts.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
             }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val pinnedNotes = notes.filter { it.isPinned }
+                val otherNotes = notes.filterNot { it.isPinned }
 
-            if (otherNotes.isNotEmpty()) {
-                item {
-                    Text(
-                        "NOTES (${otherNotes.size})",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                    )
+                if (pinnedNotes.isNotEmpty()) {
+                    item {
+                        Text(
+                            "PINNED",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(pinnedNotes) { note ->
+                        NoteCard(note = note, onTogglePin = { RideNotesRepository.togglePin(note.id) }, onDelete = { RideNotesRepository.deleteNote(note.id) })
+                    }
                 }
-                items(otherNotes) { note ->
-                    NoteCard(note = note, onTogglePin = { RideNotesRepository.togglePin(note.id) }, onDelete = { RideNotesRepository.deleteNote(note.id) })
+
+                if (otherNotes.isNotEmpty()) {
+                    item {
+                        Text(
+                            "NOTES (${otherNotes.size})",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(otherNotes) { note ->
+                        NoteCard(note = note, onTogglePin = { RideNotesRepository.togglePin(note.id) }, onDelete = { RideNotesRepository.deleteNote(note.id) })
+                    }
                 }
             }
         }
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear All Notes?", fontWeight = FontWeight.Bold) },
+            text = { Text("This will wipe all preloaded demo notes and give you a fresh, clean notes notebook.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        RideNotesRepository.clearAllNotes()
+                        showClearConfirm = false
+                    }
+                ) {
+                    Text("Clear All", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showAddDialog) {

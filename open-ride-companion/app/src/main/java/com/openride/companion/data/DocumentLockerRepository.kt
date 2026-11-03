@@ -19,6 +19,8 @@ interface DocumentLockerRepository {
     suspend fun saveDocument(doc: VehicleDocument): Result<Unit>
     suspend fun deleteDocument(id: String): Result<Unit>
     suspend fun setClusterSyncStatus(docId: String, isSynced: Boolean): Result<Unit>
+    suspend fun clearAllDocuments(): Result<Unit>
+    suspend fun resetToFresh(): Result<Unit>
 
     fun sanitizeDocumentNumber(raw: String): String
     fun isValidImageUpload(sizeBytes: Long): Boolean
@@ -155,4 +157,12 @@ class DefaultDocumentLockerRepository : DocumentLockerRepository {
         val md5Frame = ClusterDocumentSync.createDocumentMd5Frame(doc.docType.clusterDocIndex, md5)
         return sizeFrame + md5Frame + imageBytes
     }
+
+    override suspend fun clearAllDocuments(): Result<Unit> = mutex.withLock {
+        documents.clear()
+        _documentsState.value = emptyList()
+        Result.success(Unit)
+    }
+
+    override suspend fun resetToFresh(): Result<Unit> = clearAllDocuments()
 }

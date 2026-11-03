@@ -1,5 +1,6 @@
 package com.openride.companion.ui.screens.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -45,6 +48,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,16 +80,23 @@ import com.openride.companion.ui.theme.SurfaceDarkTextSec
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
+    vehicleRepository: com.openride.companion.data.vehicle.VehicleRepository? = null,
+    tripRepository: com.openride.companion.data.TripRepository? = null,
+    documentRepository: com.openride.companion.data.DocumentLockerRepository? = null,
     onNavigateToSos: () -> Unit,
     onNavigateToAuth: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    var showResetConfirm by remember { mutableStateOf(false) }
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BajajGradients.HeroNavy)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -451,6 +466,32 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
+                onClick = { showResetConfirm = true },
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Fresh Start",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "RESET TO FRESH APP (CLEAR PRELOADED DATA)",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
                 onClick = { viewModel.openLogoutDialog() },
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = CriticalRed),
@@ -508,6 +549,41 @@ fun ProfileScreen(
                 confirmButton = {
                     TextButton(onClick = { viewModel.closeAvatarPicker() }) {
                         Text("CLOSE", color = CyanAccent)
+                    }
+                }
+            )
+        }
+
+        // --- Reset Data Confirmation Dialog ---
+        if (showResetConfirm) {
+            AlertDialog(
+                onDismissRequest = { showResetConfirm = false },
+                title = { Text("Reset to Fresh App?", fontWeight = FontWeight.Bold) },
+                text = {
+                    Text(
+                        text = "This will wipe all preloaded demo notes, trips, documents, and vehicle telemetry to give you a 100% clean, fresh application.",
+                        fontSize = 13.sp
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                com.openride.companion.search.repository.RideNotesRepository.resetToFresh()
+                                tripRepository?.resetToFresh()
+                                documentRepository?.resetToFresh()
+                                vehicleRepository?.resetToFresh()
+                                showResetConfirm = false
+                                android.widget.Toast.makeText(context, "App reset to fresh state! Enjoy your new ride.", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("RESET TO FRESH", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetConfirm = false }) {
+                        Text("CANCEL")
                     }
                 }
             )

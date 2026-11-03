@@ -1,9 +1,23 @@
 package com.openride.companion
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.openride.companion.location.LocationIntentParser
+import com.openride.companion.location.RouteNavigationManager
+import com.openride.companion.navigation.model.GeoPoint
+import com.openride.companion.navigation.model.NavigationRoute
+import com.openride.companion.navigation.model.NavigationStep
+import com.openride.companion.navigation.model.RouteAlternativeType
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,9 +61,26 @@ class MainActivity : ComponentActivity() {
     private val documentRepository by lazy { DefaultDocumentLockerRepository() }
     private val navigationManager by lazy { NavigationManager() }
 
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ -> }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Request location permissions if not already granted
+        val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasFine) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+
+        handleIncomingIntent(intent)
 
         setContent {
             BajajTheme {
@@ -63,6 +94,51 @@ class MainActivity : ComponentActivity() {
                     documentRepository = documentRepository,
                     navigationManager = navigationManager
                 )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent == null) return
+        lifecycleScope.launch {
+            val destination = LocationIntentParser.parseIntent(this@MainActivity, intent)
+            if (destination != null) {
+                val startLat = 18.5204
+                val startLng = 73.8567
+                val route = RouteNavigationManager.calculateRoute(startLat, startLng, destination.latitude, destination.longitude)
+                if (route != null) {
+                    val polyGeo = route.coordinates.map { GeoPoint(it.first, it.second) }
+                    val steps = route.steps.mapIndexed { idx, s ->
+                        NavigationStep(
+                            stepIndex = idx,
+                            maneuverCode = s.maneuverCode,
+                            streetName = s.streetName,
+                            startCoordinate = polyGeo.getOrElse(idx) { GeoPoint(startLat, startLng) },
+                            endCoordinate = polyGeo.getOrElse(idx + 1) { GeoPoint(destination.latitude, destination.longitude) },
+                            distanceMeters = s.distanceMeters,
+                            durationSeconds = s.durationSeconds.toInt(),
+                            voiceInstruction = s.instruction
+                        )
+                    }
+                    val navRoute = NavigationRoute(
+                        id = "shared_${System.currentTimeMillis()}",
+                        name = destination.title,
+                        alternativeType = RouteAlternativeType.FASTEST,
+                        polyline = polyGeo,
+                        distanceMeters = route.totalDistanceMeters.toInt(),
+                        durationSeconds = route.totalDurationSeconds.toInt(),
+                        steps = steps,
+                        hasTolls = false
+                    )
+                    navigationManager.selectRoute(navRoute)
+                    Toast.makeText(this@MainActivity, "Opened shared location: ${destination.title}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

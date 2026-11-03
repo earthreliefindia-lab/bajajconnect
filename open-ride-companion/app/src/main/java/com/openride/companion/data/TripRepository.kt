@@ -41,6 +41,8 @@ interface TripRepository {
     suspend fun recordBreadcrumb(point: BreadcrumbPoint, isHardBraking: Boolean = false): Result<Unit>
     suspend fun finishRideSession(endLocation: String, userNote: String? = null): Result<TripRecord>
     suspend fun discardRideSession(): Result<Unit>
+    suspend fun clearAllTrips(): Result<Unit>
+    suspend fun resetToFresh(): Result<Unit>
 }
 
 /**
@@ -236,4 +238,12 @@ class DefaultTripRepository : TripRepository {
         currentRecorder = null
         return Result.success(Unit)
     }
+
+    override suspend fun clearAllTrips(): Result<Unit> = mutex.withLock {
+        trips.clear()
+        _tripsState.value = emptyList()
+        Result.success(Unit)
+    }
+
+    override suspend fun resetToFresh(): Result<Unit> = clearAllTrips()
 }

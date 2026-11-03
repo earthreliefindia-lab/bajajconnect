@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -23,6 +24,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openride.companion.data.DefaultDocumentLockerRepository
 import com.openride.companion.data.DefaultTripRepository
@@ -103,9 +105,18 @@ fun AppNavGraph(
         bottomBar = {
             if (isMainTabScreen) {
                 NavigationBar(
-                    containerColor = SurfaceDarkCard,
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    tonalElevation = 6.dp
                 ) {
+                    val navItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+
                     NavigationBarItem(
                         selected = currentScreen is Screen.Garage,
                         onClick = {
@@ -114,14 +125,8 @@ fun AppNavGraph(
                             }
                         },
                         icon = { Icon(Icons.AutoMirrored.Filled.DirectionsBike, contentDescription = "Garage") },
-                        label = { Text("Garage", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanAccent,
-                            selectedTextColor = CyanAccent,
-                            unselectedIconColor = SurfaceDarkTextSec,
-                            unselectedTextColor = SurfaceDarkTextSec,
-                            indicatorColor = ElevatedNavy
-                        )
+                        label = { Text("Garage", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Garage) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                        colors = navItemColors
                     )
 
                     NavigationBarItem(
@@ -132,14 +137,8 @@ fun AppNavGraph(
                             }
                         },
                         icon = { Icon(Icons.Default.Navigation, contentDescription = "Navigate") },
-                        label = { Text("Navigate", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanAccent,
-                            selectedTextColor = CyanAccent,
-                            unselectedIconColor = SurfaceDarkTextSec,
-                            unselectedTextColor = SurfaceDarkTextSec,
-                            indicatorColor = ElevatedNavy
-                        )
+                        label = { Text("Navigate", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Navigation) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                        colors = navItemColors
                     )
 
                     NavigationBarItem(
@@ -150,14 +149,8 @@ fun AppNavGraph(
                             }
                         },
                         icon = { Icon(Icons.Default.Route, contentDescription = "Trips") },
-                        label = { Text("Trips", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanAccent,
-                            selectedTextColor = CyanAccent,
-                            unselectedIconColor = SurfaceDarkTextSec,
-                            unselectedTextColor = SurfaceDarkTextSec,
-                            indicatorColor = ElevatedNavy
-                        )
+                        label = { Text("Trips", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Trips) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                        colors = navItemColors
                     )
 
                     NavigationBarItem(
@@ -168,14 +161,8 @@ fun AppNavGraph(
                             }
                         },
                         icon = { Icon(Icons.Default.Security, contentDescription = "Emergency SOS") },
-                        label = { Text("SOS", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanAccent,
-                            selectedTextColor = CyanAccent,
-                            unselectedIconColor = SurfaceDarkTextSec,
-                            unselectedTextColor = SurfaceDarkTextSec,
-                            indicatorColor = ElevatedNavy
-                        )
+                        label = { Text("SOS", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Sos) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                        colors = navItemColors
                     )
 
                     NavigationBarItem(
@@ -186,14 +173,8 @@ fun AppNavGraph(
                             }
                         },
                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                        label = { Text("Profile", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanAccent,
-                            selectedTextColor = CyanAccent,
-                            unselectedIconColor = SurfaceDarkTextSec,
-                            unselectedTextColor = SurfaceDarkTextSec,
-                            indicatorColor = ElevatedNavy
-                        )
+                        label = { Text("Profile", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Profile) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                        colors = navItemColors
                     )
                 }
             }
@@ -245,7 +226,9 @@ fun AppNavGraph(
                     GarageScreen(
                         viewModel = viewModel,
                         onNavigateToProfile = { navigateTo(Screen.Profile) },
-                        onNavigateToSos = { navigateTo(Screen.Sos) }
+                        onNavigateToSos = { navigateTo(Screen.Sos) },
+                        onNavigateToNotes = { navigateTo(Screen.RideNotes) },
+                        onNavigateToDocs = { navigateTo(Screen.DocumentLocker) }
                     )
                 }
 
@@ -280,10 +263,19 @@ fun AppNavGraph(
                     )
                 }
 
+                is Screen.RideNotes -> {
+                    com.openride.companion.notes.ui.RideNotesScreen(
+                        onNavigateBack = { navigateBack() }
+                    )
+                }
+
                 is Screen.Profile -> {
                     val viewModel = remember { ProfileViewModel(profileRepository) }
                     ProfileScreen(
                         viewModel = viewModel,
+                        vehicleRepository = vehicleRepository,
+                        tripRepository = tripRepository,
+                        documentRepository = documentRepository,
                         onNavigateToSos = { navigateTo(Screen.Sos) },
                         onNavigateToAuth = {
                             navigateTo(Screen.Login, clearStack = true)

@@ -24,7 +24,7 @@ import androidx.core.view.WindowCompat
 @Composable
 fun BajajTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Disabled by default to protect authentic brand navy #002644
+    dynamicColor: Boolean = true, // Enabled by default to sample Android 12+ wallpaper colors
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -44,8 +44,8 @@ fun BajajTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window ?: return@SideEffect
-            window.statusBarColor = if (darkTheme) BrandNavy.toArgb() else SurfaceLightBase.toArgb()
-            window.navigationBarColor = if (darkTheme) SurfaceDarkBase.toArgb() else SurfaceLightBase.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
 
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = !darkTheme

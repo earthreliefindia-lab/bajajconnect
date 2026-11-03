@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     data object Trips : Screen("trips")
     data class TripDetail(val tripId: String) : Screen("trip_detail/$tripId")
     data object DocumentLocker : Screen("document_locker")
+    data object RideNotes : Screen("ride_notes")
     data object Profile : Screen("profile")
     data object Sos : Screen("sos")
 }

@@ -53,4 +53,12 @@ object RideNotesRepository {
             if (it.id == id) it.copy(isPinned = !it.isPinned) else it
         }
     }
+
+    fun clearAllNotes() {
+        _notes.value = emptyList()
+    }
+
+    fun resetToFresh() {
+        _notes.value = emptyList()
+    }
 }

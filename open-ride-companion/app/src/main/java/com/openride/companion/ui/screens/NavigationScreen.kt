@@ -1,63 +1,40 @@
 package com.openride.companion.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.TurnLeft
-import androidx.compose.material.icons.filled.TurnRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.openride.companion.location.LocalSearchManager
+import com.openride.companion.location.NearbyCategory
+import com.openride.companion.location.ParsedDestination
+import com.openride.companion.location.RouteNavigationManager
 import com.openride.companion.navigation.ble.TbtManeuvers
-import com.openride.companion.navigation.map.ComposeCanvasMapRenderer
-import com.openride.companion.navigation.map.MapCameraState
-import com.openride.companion.navigation.map.MapThemeMode
 import com.openride.companion.navigation.model.GeoPoint
 import com.openride.companion.navigation.model.NavigationRoute
 import com.openride.companion.navigation.model.NavigationStep
@@ -65,13 +42,9 @@ import com.openride.companion.navigation.model.RouteAlternativeType
 import com.openride.companion.navigation.state.NavigationManager
 import com.openride.companion.navigation.state.NavigationState
 import com.openride.companion.safety.MotionSafetyManager
-import com.openride.companion.ui.theme.ActionBlue
-import com.openride.companion.ui.theme.BrandNavy
-import com.openride.companion.ui.theme.CyanAccent
-import com.openride.companion.ui.theme.ElevatedNavy
-import com.openride.companion.ui.theme.SurfaceDarkBorder
-import com.openride.companion.ui.theme.SurfaceDarkCard
-import com.openride.companion.ui.theme.SurfaceDarkTextSec
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun NavigationScreen(
@@ -79,6 +52,9 @@ fun NavigationScreen(
     safetyManager: MotionSafetyManager? = null,
     onNavigateBack: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     val navState by navigationManager.navigationState.collectAsState()
     val activeRoute by navigationManager.currentRoute.collectAsState()
     val activeStep = navigationManager.activeStep
@@ -87,31 +63,134 @@ fun NavigationScreen(
     val voicePrompt by navigationManager.currentVoicePrompt.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
-    var isSearchFocused by remember { mutableStateOf(false) }
+    var searchResults by remember { mutableStateOf<List<ParsedDestination>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+    var currentDestination by remember { mutableStateOf<ParsedDestination?>(null) }
+    var routeCoordinates by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    var mapplsApiKey by remember { mutableStateOf("") }
+    var showMapplsDialog by remember { mutableStateOf(false) }
+
+    // Real-time GPS location
+    var userLocation by remember { mutableStateOf<Location?>(null) }
+    var currentSpeedKmh by remember { mutableIntStateOf(0) }
 
     val isStationary by (safetyManager?.stationaryFlow ?: remember { kotlinx.coroutines.flow.MutableStateFlow(true) }).collectAsState()
     val isMoving = !isStationary
-    val currentSpeedKmh by (safetyManager?.speedFlow ?: remember { kotlinx.coroutines.flow.MutableStateFlow(0) }).collectAsState()
 
-    val mapRenderer = remember { ComposeCanvasMapRenderer() }
-    val cameraState = remember { MapCameraState(centerLat = 18.5204, centerLon = 73.8567, zoomLevel = 14f, isHeadingUp = navState == NavigationState.NAVIGATING) }
-    val currentVehiclePos = remember { GeoPoint(18.5204, 73.8567) }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+    // Start Location Listener for Genuine GPS Coordinates & Speed
+    DisposableEffect(Unit) {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        val listener = object : LocationListener {
+            override fun onLocationChanged(loc: Location) {
+                userLocation = loc
+                val rawSpeed = if (loc.hasSpeed()) (loc.speed * 3.6f).toInt() else 0
+                currentSpeedKmh = if (rawSpeed < 2) 0 else rawSpeed
+                if (navState == NavigationState.NAVIGATING) {
+                    navigationManager.onLocationUpdate(GeoPoint(loc.latitude, loc.longitude))
+                }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+        }
+
+        if (hasFine || hasCoarse) {
+            try {
+                locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let { userLocation = it }
+                    ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let { userLocation = it }
+
+                locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, listener)
+            } catch (_: SecurityException) {}
+        }
+
+        onDispose {
+            try {
+                locationManager?.removeUpdates(listener)
+            } catch (_: SecurityException) {}
+        }
+    }
+
+    // Function to calculate route & set destination
+    fun selectDestination(dest: ParsedDestination) {
+        currentDestination = dest
+        searchResults = emptyList()
+        searchQuery = dest.title
+
+        coroutineScope.launch {
+            val startLat = userLocation?.latitude ?: 18.5204
+            val startLng = userLocation?.longitude ?: 73.8567
+            val route = RouteNavigationManager.calculateRoute(startLat, startLng, dest.latitude, dest.longitude)
+
+            if (route != null) {
+                routeCoordinates = route.coordinates
+
+                val polyGeo = route.coordinates.map { GeoPoint(it.first, it.second) }
+                val steps = route.steps.mapIndexed { idx, s ->
+                    NavigationStep(
+                        stepIndex = idx,
+                        maneuverCode = s.maneuverCode,
+                        streetName = s.streetName,
+                        startCoordinate = polyGeo.getOrElse(idx) { GeoPoint(startLat, startLng) },
+                        endCoordinate = polyGeo.getOrElse(idx + 1) { GeoPoint(dest.latitude, dest.longitude) },
+                        distanceMeters = s.distanceMeters,
+                        durationSeconds = s.durationSeconds.toInt(),
+                        voiceInstruction = s.instruction
+                    )
+                }
+
+                val navRoute = NavigationRoute(
+                    id = "route_${System.currentTimeMillis()}",
+                    name = dest.title,
+                    alternativeType = RouteAlternativeType.FASTEST,
+                    polyline = polyGeo,
+                    distanceMeters = route.totalDistanceMeters.toInt(),
+                    durationSeconds = route.totalDurationSeconds.toInt(),
+                    steps = steps,
+                    hasTolls = false
+                )
+                navigationManager.selectRoute(navRoute)
+            }
+        }
+    }
+
+    // Function to execute search with 250ms debouncing
+    fun triggerSearch(query: String) {
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            searchResults = emptyList()
+            isSearching = false
+            return
+        }
+
+        isSearching = true
+        searchJob = coroutineScope.launch {
+            delay(250) // 250ms debouncer
+            val results = LocalSearchManager.searchPlaces(context, query.trim(), userLocation)
+            searchResults = results
+            isSearching = false
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Vector Map Canvas
-        mapRenderer.RenderMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraState = cameraState,
-            route = activeRoute,
-            alternateRoutes = emptyList(),
-            currentLocation = currentVehiclePos,
-            bearingDegrees = 45f,
-            traveledPoints = emptyList(),
-            waypoints = emptyList(),
-            themeMode = MapThemeMode.AUTO
+        // --- 1. Interactive Mappls / Leaflet Map with Pan & Drag Gestures ---
+        NavigationMapView(
+            userLatitude = userLocation?.latitude ?: 18.5204,
+            userLongitude = userLocation?.longitude ?: 73.8567,
+            destination = currentDestination,
+            routeCoordinates = routeCoordinates,
+            mapplsApiKey = mapplsApiKey,
+            onConfigureMapplsClick = { showMapplsDialog = true },
+            modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Maneuver HUD (Visible during Navigation)
+        // --- 2. Live Turn-by-Turn Guidance HUD ---
         if (navState == NavigationState.NAVIGATING && activeStep != null) {
             ManeuverHudCard(
                 activeStep = activeStep,
@@ -120,69 +199,245 @@ fun NavigationScreen(
                 voicePrompt = voicePrompt,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                    .statusBarsPadding()
+                    .padding(16.dp)
             )
         }
 
-        // 3. Search Bar / Motion Lockout (Top Header when idle or planning)
+        // --- 3. Google / Android 16 Minimalist Search Bar & Quick Categories ---
         if (navState != NavigationState.NAVIGATING) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(16.dp)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 if (isMoving) {
                     // Motion Safety Lockout Banner
-                    Card(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = BrandNavy),
-                        border = BorderStroke(1.dp, SurfaceDarkBorder)
+                        color = MaterialTheme.colorScheme.surface,
+                        border = strokeBorder,
+                        shadowElevation = 6.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color(0xFFFF3B30))
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Search locked while motorcycle in motion (${currentSpeedKmh} km/h)",
-                                color = Color.White,
+                                text = "Search locked while bike in motion (${currentSpeedKmh} km/h)",
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 } else {
-                    // Interactive Destination Search Header
-                    Card(
+                    // Floating Search Pill Header
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = BrandNavy),
-                        border = BorderStroke(1.dp, SurfaceDarkBorder)
+                        color = MaterialTheme.colorScheme.surface,
+                        border = strokeBorder,
+                        shadowElevation = 6.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = CyanAccent)
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             OutlinedTextField(
                                 value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                placeholder = { Text("Search destination, petrol pump, cafes...", color = SurfaceDarkTextSec, fontSize = 14.sp) },
+                                onValueChange = {
+                                    searchQuery = it
+                                    triggerSearch(it)
+                                },
+                                placeholder = {
+                                    Text(
+                                        "Search destination, petrol pump, cafes...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        fontSize = 13.sp
+                                    )
+                                },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
                                     focusedBorderColor = Color.Transparent,
                                     unfocusedBorderColor = Color.Transparent,
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                             if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = SurfaceDarkTextSec)
+                                IconButton(
+                                    onClick = {
+                                        searchQuery = ""
+                                        searchResults = emptyList()
+                                        currentDestination = null
+                                        routeCoordinates = emptyList()
+                                        navigationManager.stopNavigation()
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick Category Chips
+                    if (searchResults.isEmpty() && currentDestination == null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(LocalSearchManager.QUICK_CATEGORIES) { cat ->
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .clickable {
+                                            searchQuery = cat.name
+                                            triggerSearch(cat.searchQuery)
+                                        },
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                                    border = strokeBorder,
+                                    shadowElevation = 3.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val icon = when (cat.id) {
+                                            "fuel" -> Icons.Default.LocalGasStation
+                                            "ev" -> Icons.Default.ElectricBike
+                                            "repair" -> Icons.Default.Build
+                                            "food" -> Icons.Default.Restaurant
+                                            else -> Icons.Default.LocalHospital
+                                        }
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = cat.name,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = cat.name,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Interactive Search Results Dropdown List
+                if (isSearching) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = strokeBorder,
+                        shadowElevation = 6.dp
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+                    }
+                } else if (searchResults.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 280.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = strokeBorder,
+                        shadowElevation = 8.dp
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(searchResults) { result ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .clickable { selectDestination(result) },
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Place,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = result.title,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            result.address?.let { addr ->
+                                                Text(
+                                                    text = addr,
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                        result.formattedDistance?.let { dist ->
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = dist,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -191,43 +446,45 @@ fun NavigationScreen(
             }
         }
 
-        // 4. Floating Speed Gauge Indicator (Bottom Left)
-        Card(
+        // --- 4. Floating Speed Gauge Indicator (Bottom Left) ---
+        Surface(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = if (navState == NavigationState.NAVIGATING) 100.dp else 90.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = BrandNavy),
-            border = BorderStroke(1.dp, SurfaceDarkBorder)
+                .padding(start = 16.dp, bottom = if (navState == NavigationState.NAVIGATING) 100.dp else 95.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = strokeBorder,
+            shadowElevation = 6.dp
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "$currentSpeedKmh",
-                    fontSize = 28.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = CyanAccent
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = "KM/H",
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    color = SurfaceDarkTextSec
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // 5. Bottom Navigation Control Strip
-        Card(
+        // --- 5. Bottom Navigation Control Strip ---
+        Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = BrandNavy),
-            border = BorderStroke(1.dp, SurfaceDarkBorder)
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = strokeBorder,
+            shadowElevation = 8.dp
         ) {
             Row(
                 modifier = Modifier
@@ -239,15 +496,18 @@ fun NavigationScreen(
                 if (navState == NavigationState.NAVIGATING) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = activeRoute?.name ?: "Active Route",
-                            color = Color.White,
+                            text = activeRoute?.name ?: currentDestination?.title ?: "Bike Route",
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${activeRoute?.distanceKm ?: 0f} km • ${activeRoute?.etaMinutes ?: 0} min",
-                            color = CyanAccent,
-                            fontSize = 13.sp
+                            text = "${activeRoute?.distanceKm ?: 0f} km • ${activeRoute?.etaMinutes ?: 0} min • Bike Mode",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -256,36 +516,66 @@ fun NavigationScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = "Stop", tint = Color.White)
+                        Icon(Icons.Default.Stop, contentDescription = "Exit", tint = Color.White)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Exit", color = Color.White)
+                        Text("Exit", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = activeRoute?.name ?: "Lonavala Expressway",
-                            color = Color.White,
+                            text = currentDestination?.title ?: "Select Destination",
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "64.2 km • 72 min • Tolls Included",
-                            color = CyanAccent,
-                            fontSize = 13.sp
+                            text = if (currentDestination != null)
+                                "${activeRoute?.distanceKm ?: 0f} km • Ready to navigate"
+                            else
+                                "Tap search or category above",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
                     Button(
-                        onClick = { navigationManager.startNavigation() },
-                        colors = ButtonDefaults.buttonColors(containerColor = CyanAccent),
+                        onClick = {
+                            if (currentDestination != null && activeRoute != null) {
+                                navigationManager.startNavigation()
+                            }
+                        },
+                        enabled = currentDestination != null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Start", tint = Color(0xFF002644))
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Start")
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Start", color = Color(0xFF002644), fontWeight = FontWeight.Bold)
+                        Text("Start", fontWeight = FontWeight.Bold)
                     }
                 }
             }
+        }
+
+        // --- 6. Mappls Setup Dialog ---
+        if (showMapplsDialog) {
+            MapplsSetupDialog(
+                currentApiKey = mapplsApiKey,
+                onSaveApiKey = {
+                    mapplsApiKey = it
+                    showMapplsDialog = false
+                },
+                onUseFreeMode = {
+                    mapplsApiKey = ""
+                    showMapplsDialog = false
+                },
+                onDismiss = { showMapplsDialog = false }
+            )
         }
     }
 }
@@ -298,30 +588,32 @@ fun ManeuverHudCard(
     voicePrompt: String?,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = BrandNavy),
-        border = BorderStroke(1.dp, SurfaceDarkBorder)
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = strokeBorder,
+        shadowElevation = 8.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Maneuver Direction Icon
                 Box(
                     modifier = Modifier
                         .size(52.dp)
-                        .background(ElevatedNavy, CircleShape),
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     val icon = resolveManeuverIcon(activeStep.maneuverCode)
                     Icon(
                         imageVector = icon,
                         contentDescription = "Turn",
-                        tint = CyanAccent,
-                        modifier = Modifier.size(32.dp)
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(30.dp)
                     )
                 }
 
@@ -330,13 +622,13 @@ fun ManeuverHudCard(
                         text = formatDistanceDisplay(remainingMeters),
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CyanAccent
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = activeStep.streetName,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -348,14 +640,13 @@ fun ManeuverHudCard(
                 Text(
                     text = voicePrompt,
                     fontSize = 12.sp,
-                    color = Color(0xFF22C55E),
+                    color = Color(0xFF00C853),
                     fontWeight = FontWeight.Medium
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Step Progress Line
             val fraction = (remainingMeters.toFloat() / activeStep.distanceMeters.coerceAtLeast(1).toFloat())
             LinearProgressIndicator(
                 progress = { (1f - fraction).coerceIn(0f, 1f) },
@@ -363,28 +654,27 @@ fun ManeuverHudCard(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = CyanAccent,
-                trackColor = ElevatedNavy
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
-            // Secondary "Then" Next Maneuver Preview
             if (nextStep != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(text = "Then", fontSize = 12.sp, color = SurfaceDarkTextSec)
+                    Text(text = "Then", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Icon(
                         imageVector = resolveManeuverIcon(nextStep.maneuverCode),
                         contentDescription = null,
-                        tint = SurfaceDarkTextSec,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = nextStep.streetName,
-                        fontSize = 12.sp,
-                        color = SurfaceDarkTextSec,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -394,7 +684,7 @@ fun ManeuverHudCard(
     }
 }
 
-fun resolveManeuverIcon(maneuverCode: Int): ImageVector {
+fun resolveManeuverIcon(maneuverCode: Int): androidx.compose.ui.graphics.vector.ImageVector {
     return when (maneuverCode) {
         TbtManeuvers.TURN_LEFT, TbtManeuvers.TURN_SLIGHT_LEFT, TbtManeuvers.TURN_SHARP_LEFT -> Icons.Default.TurnLeft
         TbtManeuvers.TURN_RIGHT, TbtManeuvers.TURN_SLIGHT_RIGHT, TbtManeuvers.TURN_SHARP_RIGHT -> Icons.Default.TurnRight
