@@ -26,7 +26,20 @@ import androidx.compose.ui.unit.sp
 import com.openride.companion.ui.theme.BajajGradients
 import com.openride.companion.ui.theme.BajajTheme
 
+import com.openride.companion.data.auth.AuthRepositoryImpl
+import com.openride.companion.data.preferences.InMemorySessionPreferences
+import com.openride.companion.data.profile.ProfileRepositoryImpl
+import com.openride.companion.data.sos.EmergencySosRepositoryImpl
+import com.openride.companion.data.vehicle.VehicleRepositoryImpl
+import com.openride.companion.navigation.AppNavGraph
+
 class MainActivity : ComponentActivity() {
+
+    private val sessionPreferences by lazy { InMemorySessionPreferences() }
+    private val authRepository by lazy { AuthRepositoryImpl() }
+    private val vehicleRepository by lazy { VehicleRepositoryImpl() }
+    private val profileRepository by lazy { ProfileRepositoryImpl() }
+    private val sosRepository by lazy { EmergencySosRepositoryImpl() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -34,7 +47,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BajajTheme {
-                SplashScreen()
+                AppNavGraph(
+                    sessionPreferences = sessionPreferences,
+                    authRepository = authRepository,
+                    vehicleRepository = vehicleRepository,
+                    profileRepository = profileRepository,
+                    sosRepository = sosRepository
+                )
             }
         }
     }

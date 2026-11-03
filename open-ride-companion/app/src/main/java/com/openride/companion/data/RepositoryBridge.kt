@@ -1,0 +1,21 @@
+package com.openride.companion.data
+
+import com.openride.companion.data.auth.AuthRepository as DataAuthRepository
+import com.openride.companion.data.auth.AuthRepositoryImpl as DataAuthRepositoryImpl
+import com.openride.companion.data.auth.AuthSessionManager as DataAuthSessionManager
+import com.openride.companion.data.vehicle.VehicleRepository as DataVehicleRepository
+import com.openride.companion.data.vehicle.VehicleRepositoryImpl as DataVehicleRepositoryImpl
+import com.openride.companion.data.profile.ProfileRepository as DataProfileRepository
+import com.openride.companion.data.profile.ProfileRepositoryImpl as DataProfileRepositoryImpl
+import com.openride.companion.data.sos.EmergencySosRepository as DataEmergencySosRepository
+import com.openride.companion.data.sos.EmergencySosRepositoryImpl as DataEmergencySosRepositoryImpl
+
+typealias AuthRepository = DataAuthRepository
+typealias AuthRepositoryImpl = DataAuthRepositoryImpl
+typealias AuthSessionManager = DataAuthSessionManager
+typealias VehicleRepository = DataVehicleRepository
+typealias VehicleRepositoryImpl = DataVehicleRepositoryImpl
+typealias ProfileRepository = DataProfileRepository
+typealias ProfileRepositoryImpl = DataProfileRepositoryImpl
+typealias EmergencySosRepository = DataEmergencySosRepository
+typealias EmergencySosRepositoryImpl = DataEmergencySosRepositoryImpl
