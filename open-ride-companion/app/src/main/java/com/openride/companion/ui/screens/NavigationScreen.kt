@@ -67,8 +67,6 @@ fun NavigationScreen(
     var isSearching by remember { mutableStateOf(false) }
     var currentDestination by remember { mutableStateOf<ParsedDestination?>(null) }
     var routeCoordinates by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
-    var mapplsApiKey by remember { mutableStateOf("") }
-    var showMapplsDialog by remember { mutableStateOf(false) }
 
     // Real-time GPS location
     var userLocation by remember { mutableStateOf<Location?>(null) }
@@ -201,14 +199,12 @@ fun NavigationScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // --- 1. Interactive Mappls / Leaflet Map with Pan & Drag Gestures ---
+        // --- 1. Interactive Lightweight Map with Pan & Drag Gestures ---
         NavigationMapView(
             userLatitude = userLocation?.latitude ?: 18.5204,
             userLongitude = userLocation?.longitude ?: 73.8567,
             destination = currentDestination,
             routeCoordinates = routeCoordinates,
-            mapplsApiKey = mapplsApiKey,
-            onConfigureMapplsClick = { showMapplsDialog = true },
             onFetchCurrentLocation = { fetchFreshLocation() },
             modifier = Modifier.fillMaxSize()
         )
@@ -595,22 +591,6 @@ fun NavigationScreen(
                     }
                 }
             }
-        }
-
-        // --- 6. Mappls Setup Dialog ---
-        if (showMapplsDialog) {
-            MapplsSetupDialog(
-                currentApiKey = mapplsApiKey,
-                onSaveApiKey = {
-                    mapplsApiKey = it
-                    showMapplsDialog = false
-                },
-                onUseFreeMode = {
-                    mapplsApiKey = ""
-                    showMapplsDialog = false
-                },
-                onDismiss = { showMapplsDialog = false }
-            )
         }
     }
 }

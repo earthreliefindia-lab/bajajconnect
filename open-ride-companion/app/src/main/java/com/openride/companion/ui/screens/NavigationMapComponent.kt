@@ -18,21 +18,22 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.openride.companion.location.ParsedDestination
 import org.json.JSONArray
 
+/**
+ * Ultra-lightweight, zero-friction Navigation Map Component.
+ * Never prompts for API keys, loads instantaneously, and supports smooth 60fps
+ * drag, pan, pinch-zoom, and 1-tap GPS centering.
+ */
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
 fun NavigationMapView(
@@ -40,21 +41,20 @@ fun NavigationMapView(
     userLongitude: Double?,
     destination: ParsedDestination?,
     routeCoordinates: List<Pair<Double, Double>>,
-    mapplsApiKey: String = "",
-    onConfigureMapplsClick: () -> Unit = {},
     onFetchCurrentLocation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isMapLoaded by remember { mutableStateOf(false) }
+    var isSatelliteMode by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
 
-    // Reload HTML when API key or Theme changes
-    LaunchedEffect(mapplsApiKey, isDark) {
+    // Reload HTML only when Theme or Map Style changes
+    LaunchedEffect(isDark, isSatelliteMode) {
         if (isMapLoaded) {
             webViewInstance?.loadDataWithBaseURL(
-                "https://mappls.com",
-                getMapplsStyleMapHtml(mapplsApiKey, isDark),
+                "https://openride.local",
+                getLightweightMapHtml(isDark, isSatelliteMode),
                 "text/html",
                 "UTF-8",
                 null
@@ -86,7 +86,7 @@ fun NavigationMapView(
                         domStorageEnabled = true
                         databaseEnabled = true
                         allowFileAccess = false
-                        cacheMode = WebSettings.LOAD_DEFAULT
+                        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
                         useWideViewPort = true
                         loadWithOverviewMode = true
                         setSupportZoom(true)
@@ -95,7 +95,7 @@ fun NavigationMapView(
                     }
                     setBackgroundColor(if (isDark) 0xFF121418.toInt() else 0xFFF1F3F4.toInt())
 
-                    // Fix Android Compose gesture interception: Disallow parent intercept on touch
+                    // Crucial: Disallow parent Compose from stealing touch gestures
                     setOnTouchListener { v, event ->
                         when (event.actionMasked) {
                             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
@@ -113,28 +113,24 @@ fun NavigationMapView(
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
                             isMapLoaded = true
-                            userLatitude?.let { lat ->
-                                userLongitude?.let { lng ->
-                                    view?.evaluateJavascript("updateUserLocation($lat, $lng, 0);", null)
-                                    view?.evaluateJavascript("centerOnUser();", null)
-                                }
-                            }
+                            val lat = userLatitude ?: 18.5204
+                            val lng = userLongitude ?: 73.8567
+                            view?.evaluateJavascript("updateUserLocation($lat, $lng, 0);", null)
+                            view?.evaluateJavascript("centerOnUser();", null)
                         }
                     }
 
-                    val htmlContent = getMapplsStyleMapHtml(mapplsApiKey, isDark)
-                    loadDataWithBaseURL("https://mappls.com", htmlContent, "text/html", "UTF-8", null)
+                    val htmlContent = getLightweightMapHtml(isDark, isSatelliteMode)
+                    loadDataWithBaseURL("https://openride.local", htmlContent, "text/html", "UTF-8", null)
                     webViewInstance = this
                 }
             },
             update = { webView ->
                 if (isMapLoaded) {
-                    // Update user location
                     if (userLatitude != null && userLongitude != null) {
                         webView.evaluateJavascript("updateUserLocation($userLatitude, $userLongitude, 0);", null)
                     }
 
-                    // Update destination pin
                     if (destination != null) {
                         val safeTitle = destination.title.replace("'", "\\'")
                         webView.evaluateJavascript(
@@ -145,7 +141,6 @@ fun NavigationMapView(
                         webView.evaluateJavascript("clearDestination();", null)
                     }
 
-                    // Update bike route polyline
                     if (routeCoordinates.isNotEmpty()) {
                         val jsonArr = JSONArray()
                         for (pt in routeCoordinates) {
@@ -162,7 +157,7 @@ fun NavigationMapView(
             }
         )
 
-        // Floating Map Controls: My Location, Zoom In, Zoom Out, Mappls Setup
+        // Floating Map Controls: Layer Switcher, Zoom In, Zoom Out, My Location
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -170,42 +165,16 @@ fun NavigationMapView(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Mappls Mode Indicator Pill
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                shadowElevation = 4.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.TwoWheeler,
-                        contentDescription = "Bike Mode",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (mapplsApiKey.isBlank()) "Mappls / OSM" else "Mappls Official",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // Mappls Configure Button
+            // 1-Tap Map Layer Switcher (Vector vs Satellite/Outdoor)
             FloatingActionButton(
-                onClick = onConfigureMapplsClick,
+                onClick = { isSatelliteMode = !isSatelliteMode },
                 modifier = Modifier.size(42.dp),
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
+                contentColor = if (isSatelliteMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp)
             ) {
-                Icon(Icons.Default.Tune, contentDescription = "Mappls Setup", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Layers, contentDescription = "Toggle Map Layer", modifier = Modifier.size(20.dp))
             }
 
             // Zoom In Button
@@ -232,7 +201,7 @@ fun NavigationMapView(
                 Icon(Icons.Default.Remove, contentDescription = "Zoom Out", modifier = Modifier.size(20.dp))
             }
 
-            // 1-Tap Fetch Current Location Button (Prominent Primary Action)
+            // 1-Tap Fetch Current Location Button (Prominent GPS crosshair)
             FloatingActionButton(
                 onClick = {
                     onFetchCurrentLocation()
@@ -253,18 +222,17 @@ fun NavigationMapView(
     }
 }
 
-private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
-    val defaultFreeUrl = if (isDark) {
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
-    } else {
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+/**
+ * Generates an ultra-lightweight HTML/Leaflet map with zero API keys required.
+ * Uses high-speed cached raster tiles tuned to stock Android light/dark themes.
+ */
+private fun getLightweightMapHtml(isDark: Boolean, isSatellite: Boolean): String {
+    val tileUrl = when {
+        isSatellite -> "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        isDark -> "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
+        else -> "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     }
-    val activeTileUrl = if (apiKey.isNotBlank()) {
-        "https://apis.mappls.com/advancedmaps/v1/$apiKey/still_image?center={lat},{lon}&zoom={z}"
-    } else {
-        defaultFreeUrl
-    }
-    val isCustomKey = apiKey.isNotBlank()
+
     val bgColor = if (isDark) "#121418" else "#F8F9FA"
     val routeColor = if (isDark) "#00E5FF" else "#1A73E8"
     val glowColor = if (isDark) "#0066FF" else "#90CAF9"
@@ -329,9 +297,7 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
         <body>
             <div id="map"></div>
             <script>
-                var isCustom = $isCustomKey;
-                var activeTileUrl = '$activeTileUrl';
-                var defaultFreeUrl = '$defaultFreeUrl';
+                var tileUrl = '$tileUrl';
 
                 var map = L.map('map', {
                     zoomControl: false,
@@ -341,23 +307,13 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                     scrollWheelZoom: true,
                     doubleClickZoom: true,
                     boxZoom: false,
-                    tap: false // Crucial for responsive touch drag on modern Android WebViews
+                    tap: false
                 }).setView([18.5204, 73.8567], 15);
 
-                var mainTileLayer = L.tileLayer(activeTileUrl, {
+                L.tileLayer(tileUrl, {
                     maxZoom: 19,
-                    subdomains: isCustom ? '' : 'abc'
+                    subdomains: 'abc'
                 }).addTo(map);
-
-                if (isCustom) {
-                    mainTileLayer.on('tileerror', function() {
-                        map.removeLayer(mainTileLayer);
-                        L.tileLayer(defaultFreeUrl, {
-                            maxZoom: 19,
-                            subdomains: 'abc'
-                        }).addTo(map);
-                    });
-                }
 
                 var userMarker = null;
                 var destMarker = null;
@@ -393,7 +349,7 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
 
                 function centerOnUser() {
                     if (userMarker) {
-                        map.flyTo([currentLat, currentLng], 16, { animate: true, duration: 0.8 });
+                        map.flyTo([currentLat, currentLng], 16, { animate: true, duration: 0.6 });
                     }
                 }
 
@@ -406,7 +362,7 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                         destMarker.bindPopup('<b style="color:#000;">' + title + '</b>').openPopup();
                     }
                     if (!routePolyline) {
-                        map.flyTo([lat, lng], 16, { animate: true, duration: 0.8 });
+                        map.flyTo([lat, lng], 16, { animate: true, duration: 0.6 });
                     }
                 }
 

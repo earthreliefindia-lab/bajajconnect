@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Check
@@ -34,8 +35,14 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.SportsMotorsports
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -724,6 +731,16 @@ fun GarageScreen(
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // --- Live Cluster Telemetry & Control Card ---
+                    ClusterLiveControlCard(currentBike)
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // --- Motorcycle Console & Handlebar Switch Guide ---
+                    ConsoleHandlebarGuideCard()
                 }
             }
         }
@@ -881,16 +898,8 @@ fun GarageScreen(
                     }
                 },
                 confirmButton = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { viewModel.resetToFresh() }) {
-                            Text("CLEAR PREFILLED", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        TextButton(onClick = { viewModel.closeManageBikesDialog() }) {
-                            Text("DONE", fontWeight = FontWeight.Bold)
-                        }
+                    TextButton(onClick = { viewModel.closeManageBikesDialog() }) {
+                        Text("DONE", fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -1059,6 +1068,369 @@ fun GarageScreen(
                         Text("CANCEL")
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+fun ClusterLiveControlCard(vehicle: Vehicle) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isTbtModeEnabled by remember { mutableStateOf(true) }
+    var isCallSyncEnabled by remember { mutableStateOf(true) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header Row: Live Status & Cluster SKU
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = "Cluster",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "LIVE CLUSTER TELEMETRY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "SKU: ${vehicle.modelSpec.clusterHardware} • BLE OCT GATT",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = SuccessGreen.copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(SuccessGreen)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "ONLINE",
+                            color = SuccessGreen,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Digital Cluster Console Simulator Box
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    // Row 1: Gear Indicator & Speedometer
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Gear Badge
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.5.dp, SuccessGreen)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("GEAR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("N", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = SuccessGreen)
+                            }
+                        }
+
+                        // Speedometer
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "0",
+                                fontSize = 48.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "km/h",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+
+                        // RPM Indicator
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("TACHOMETER", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("1,250 RPM", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Shift @ 8,500", fontSize = 10.sp, color = WarningAmber, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Digital Telltales Strip
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TelltaleBadge("◄", SuccessGreen, isActive = false)
+                        TelltaleBadge("N", SuccessGreen, isActive = true)
+                        TelltaleBadge("STAND", WarningAmber, isActive = true)
+                        TelltaleBadge("ABS", WarningAmber, isActive = true)
+                        TelltaleBadge("BEAM", MaterialTheme.colorScheme.primary, isActive = false)
+                        TelltaleBadge("►", SuccessGreen, isActive = false)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "CLUSTER REMOTE CONTROLS",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Action Row: Remote Controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Sync Clock Button
+                OutlinedButton(
+                    onClick = {
+                        android.widget.Toast.makeText(context, "Clock synchronized with motorcycle console!", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Sync Clock", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                // Push Navigation Toggle
+                OutlinedButton(
+                    onClick = {
+                        isTbtModeEnabled = !isTbtModeEnabled
+                        val status = if (isTbtModeEnabled) "enabled" else "disabled"
+                        android.widget.Toast.makeText(context, "Cluster Turn-by-Turn mode $status", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, if (isTbtModeEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isTbtModeEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (isTbtModeEnabled) "Nav: ON" else "Nav: OFF", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                // Call Sync Toggle
+                OutlinedButton(
+                    onClick = {
+                        isCallSyncEnabled = !isCallSyncEnabled
+                        val status = if (isCallSyncEnabled) "enabled" else "disabled"
+                        android.widget.Toast.makeText(context, "Cluster Call & SMS alert $status", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, if (isCallSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isCallSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (isCallSyncEnabled) "Calls: ON" else "Calls: OFF", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TelltaleBadge(label: String, activeColor: androidx.compose.ui.graphics.Color, isActive: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = if (isActive) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (isActive) activeColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text = label,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isActive) activeColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun ConsoleHandlebarGuideCard() {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Interactive Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.SportsMotorsports,
+                        contentDescription = "Guide",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "CONSOLE & HANDLEBAR GUIDE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = if (isExpanded) "Tap to collapse guide" else "Tap to view button controls & cluster navigation",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Accordion Body
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                GuideStepRow(
+                    badge = "M",
+                    title = "Mode Button ('M' on Console)",
+                    description = "• Short press: Cycle through ODO -> TRIP A -> TRIP B -> DTE (Distance To Empty) -> Instant Fuel Economy (IFE).\n• Long press (5s): Enter Bluetooth pairing mode (BT icon flashes)."
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                GuideStepRow(
+                    badge = "S",
+                    title = "Set Button ('S' on Console)",
+                    description = "• Long press while on Trip A/B: Resets the trip odometer to 0.0 km.\n• Long press while on Clock: Enters clock adjustment mode (change hour with M, save with S)."
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                GuideStepRow(
+                    badge = "▲▼",
+                    title = "Left Handlebar Cube (Up / Down / Enter)",
+                    description = "• Up / Down: Scroll through calls, notifications & music tracks on cluster.\n• Enter (Center click): Accept phone call or Play / Pause music.\n• Long press Down / Back: Reject incoming phone call."
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                GuideStepRow(
+                    badge = "!",
+                    title = "Cluster Safety Indicators",
+                    description = "• Side Stand Warning: Engine ignition cuts out if side stand is down while in gear.\n• RPM Shift Light: Blinks at 8,500+ RPM advising upshift for maximum acceleration & engine longevity."
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun GuideStepRow(badge: String, title: String, description: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(34.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = badge,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
             )
         }
     }

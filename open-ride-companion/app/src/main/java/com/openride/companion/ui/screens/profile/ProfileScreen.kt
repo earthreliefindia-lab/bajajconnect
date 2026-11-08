@@ -63,7 +63,6 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    var showResetConfirm by remember { mutableStateOf(false) }
 
     // Custom Profile Photo Picker Launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -446,32 +445,6 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedButton(
-                onClick = { showResetConfirm = true },
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Fresh Start",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "CLEAR PREFILLED DATA (FRESH APP)",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedButton(
                 onClick = { viewModel.openLogoutDialog() },
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = CriticalRed),
@@ -640,45 +613,6 @@ fun ProfileScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.closeBajajVerifyDialog() }) {
-                        Text("CANCEL")
-                    }
-                }
-            )
-        }
-
-        // --- Reset Data Confirmation Dialog ---
-        if (showResetConfirm) {
-            AlertDialog(
-                onDismissRequest = { showResetConfirm = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(20.dp),
-                title = { Text("Clear All Prefilled Data?", fontWeight = FontWeight.Bold) },
-                text = {
-                    Text(
-                        text = "This will wipe all demo trips, sample documents, and reset the motorcycle garage so your app is completely fresh and ready for your physical bike.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                com.openride.companion.search.repository.RideNotesRepository.resetToFresh()
-                                tripRepository?.resetToFresh()
-                                documentRepository?.resetToFresh()
-                                vehicleRepository?.resetToFresh()
-                                viewModel.clearAllData()
-                                showResetConfirm = false
-                                android.widget.Toast.makeText(context, "All preloaded data cleared! Fresh app ready.", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    ) {
-                        Text("CLEAR DATA", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showResetConfirm = false }) {
                         Text("CANCEL")
                     }
                 }

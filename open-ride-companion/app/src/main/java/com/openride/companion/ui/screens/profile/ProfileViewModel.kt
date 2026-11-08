@@ -125,6 +125,9 @@ class ProfileViewModel(
 
     fun onThemeModeSelected(mode: ThemeMode) {
         _uiState.update { it.copy(selectedThemeMode = mode) }
+        viewModelScope.launch {
+            repository.setThemeMode(mode)
+        }
     }
 
     fun onHelmetReminderToggled(enabled: Boolean) {
