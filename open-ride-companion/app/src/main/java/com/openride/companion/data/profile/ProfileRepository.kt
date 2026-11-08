@@ -32,7 +32,7 @@ class ProfileRepositoryImpl : ProfileRepository {
         bloodGroup = "O+",
         avatarAsset = "avatar_profile_default.png",
         preferredDistanceUnit = "km",
-        themeOverride = ThemeMode.DARK,
+        themeOverride = ThemeMode.SYSTEM,
         helmetReminderEnabled = true,
         notificationsEnabled = true,
         callSmsAlertsEnabled = true

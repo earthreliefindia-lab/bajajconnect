@@ -124,6 +124,15 @@ class NewGeneralPacketV2Builder {
         return packet
     }
 
+    /**
+     * Builds the exact 55-byte status frame required by Bajaj Pulsar consoles (SKU: 00JR33BT).
+     * Contains volume, headset bit, phone call status, signal strength, ACKs, caller name,
+     * call duration, and rolling heartbeat (bytes 0..54).
+     */
+    fun buildPulsar55(): ByteArray {
+        return build().copyOf(55)
+    }
+
     companion object {
         /**
          * Calculates modulo-256 sum over byte range [0 until length].

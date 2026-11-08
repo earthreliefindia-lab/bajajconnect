@@ -102,7 +102,7 @@ object GarageCatalog {
         fuelCapacityLitres = 12.0f,
         engineDisplacementCc = 373,
         defaultDteKm = 285,
-        clusterHardware = "Cluster0265",
+        clusterHardware = "00JR33BT",
         isElectric = false,
         primaryAsset = "vehicle_dominar_400.png",
         primaryDrawableRes = R.drawable.vehicle_dominar_400
@@ -138,7 +138,7 @@ object GarageCatalog {
         fuelCapacityLitres = 14.0f,
         engineDisplacementCc = 249,
         defaultDteKm = 310,
-        clusterHardware = "Cluster2763",
+        clusterHardware = "00JR33BT",
         isElectric = false,
         primaryAsset = "vehicle_pulsar_n160.png",
         primaryDrawableRes = R.drawable.vehicle_pulsar_n160

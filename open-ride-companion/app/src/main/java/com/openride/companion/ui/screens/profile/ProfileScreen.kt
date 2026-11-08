@@ -23,11 +23,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,7 +54,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,16 +66,9 @@ import androidx.compose.ui.unit.sp
 import com.openride.companion.R
 import com.openride.companion.model.RiderProfile
 import com.openride.companion.model.ThemeMode
-import com.openride.companion.ui.theme.ActionBlue
-import com.openride.companion.ui.theme.BajajGradients
 import com.openride.companion.ui.theme.CriticalRed
-import com.openride.companion.ui.theme.CyanAccent
-import com.openride.companion.ui.theme.ElevatedNavy
-import com.openride.companion.ui.theme.LightBlueAccent
 import com.openride.companion.ui.theme.SuccessGreen
-import com.openride.companion.ui.theme.SurfaceDarkBorder
-import com.openride.companion.ui.theme.SurfaceDarkCard
-import com.openride.companion.ui.theme.SurfaceDarkTextSec
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +77,6 @@ fun ProfileScreen(
     vehicleRepository: com.openride.companion.data.vehicle.VehicleRepository? = null,
     tripRepository: com.openride.companion.data.TripRepository? = null,
     documentRepository: com.openride.companion.data.DocumentLockerRepository? = null,
-    onNavigateToSos: () -> Unit,
     onNavigateToAuth: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -91,7 +84,6 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var showResetConfirm by remember { mutableStateOf(false) }
-    val strokeBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
     Box(
         modifier = Modifier
@@ -102,26 +94,26 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Screen Header
             Text(
                 text = "Rider Profile",
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 20.dp)
+                    .padding(bottom = 18.dp)
             )
 
             // Avatar Section
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(96.dp)
                     .clip(CircleShape)
-                    .background(ElevatedNavy)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { viewModel.openAvatarPicker() },
                 contentAlignment = Alignment.Center
             ) {
@@ -136,26 +128,27 @@ fun ProfileScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(30.dp)
+                        .size(28.dp)
                         .clip(CircleShape)
-                        .background(ActionBlue),
+                        .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Avatar",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // --- 1. Personal Identification Card ---
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDarkCard),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -163,7 +156,7 @@ fun ProfileScreen(
                         text = "RIDER DETAILS",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CyanAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
                     )
 
@@ -176,12 +169,7 @@ fun ProfileScreen(
                         isError = state.nameError != null,
                         supportingText = state.nameError?.let { { Text(it, color = CriticalRed) } },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ElevatedNavy.copy(alpha = 0.5f),
-                            unfocusedContainerColor = ElevatedNavy.copy(alpha = 0.5f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -194,12 +182,7 @@ fun ProfileScreen(
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it, color = CriticalRed) } },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = ElevatedNavy.copy(alpha = 0.5f),
-                            unfocusedContainerColor = ElevatedNavy.copy(alpha = 0.5f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -210,22 +193,19 @@ fun ProfileScreen(
                         onValueChange = {},
                         enabled = false,
                         label = { Text("Phone Number") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledContainerColor = ElevatedNavy.copy(alpha = 0.3f),
-                            disabledTextColor = Color.White.copy(alpha = 0.7f),
-                            disabledBorderColor = SurfaceDarkBorder
-                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // --- 2. Medical Blood Group Card ---
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDarkCard),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -233,7 +213,7 @@ fun ProfileScreen(
                         text = "EMERGENCY BLOOD GROUP",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CyanAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
                     )
 
@@ -245,45 +225,120 @@ fun ProfileScreen(
                     ) {
                         items(RiderProfile.VALID_BLOOD_GROUPS.toList()) { group ->
                             val isSelected = state.selectedBloodGroup == group
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 64.dp, height = 36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) ActionBlue else ElevatedNavy)
-                                    .border(1.dp, if (isSelected) CyanAccent else SurfaceDarkBorder, RoundedCornerShape(8.dp))
-                                    .clickable { viewModel.onBloodGroupSelected(group) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = group,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) Color.White else SurfaceDarkTextSec
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.onBloodGroupSelected(group) },
+                                label = { Text(group, fontWeight = FontWeight.Bold) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
-                            }
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // --- 3. Ride Preferences Card ---
+            // --- 3. App Theme & Styling (Dynamic Wallpaper / Light / Dark) ---
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDarkCard),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "PREFERENCES & SAFETY",
+                        text = "APP THEME & PALETTE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CyanAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Choose stock Android wallpaper colors or manual light/dark mode",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // 3-way Theme Selection Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Option 1: System / Wallpaper
+                        val isSystem = state.selectedThemeMode == ThemeMode.SYSTEM
+                        FilterChip(
+                            selected = isSystem,
+                            onClick = { viewModel.onThemeModeSelected(ThemeMode.SYSTEM) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Smartphone,
+                                    contentDescription = "System Wallpaper",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text("System", fontSize = 12.sp, fontWeight = if (isSystem) FontWeight.Bold else FontWeight.Normal) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+
+                        // Option 2: Light Mode
+                        val isLight = state.selectedThemeMode == ThemeMode.LIGHT
+                        FilterChip(
+                            selected = isLight,
+                            onClick = { viewModel.onThemeModeSelected(ThemeMode.LIGHT) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.LightMode,
+                                    contentDescription = "Light Mode",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text("Light", fontSize = 12.sp, fontWeight = if (isLight) FontWeight.Bold else FontWeight.Normal) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+
+                        // Option 3: Dark Mode
+                        val isDark = state.selectedThemeMode == ThemeMode.DARK
+                        FilterChip(
+                            selected = isDark,
+                            onClick = { viewModel.onThemeModeSelected(ThemeMode.DARK) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.DarkMode,
+                                    contentDescription = "Dark Mode",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text("Dark", fontSize = 12.sp, fontWeight = if (isDark) FontWeight.Bold else FontWeight.Normal) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Distance Units Toggle
                     Row(
@@ -292,8 +347,8 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(text = "Distance Units", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                            Text(text = "Cluster and app metric units", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                            Text(text = "Distance Units", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                            Text(text = "Cluster and app metric units", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
                         Row {
@@ -301,9 +356,10 @@ fun ProfileScreen(
                                 selected = state.selectedDistanceUnit == "km",
                                 onClick = { viewModel.onDistanceUnitToggled("km") },
                                 label = { Text("KM") },
+                                shape = RoundedCornerShape(8.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = ActionBlue,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -311,42 +367,11 @@ fun ProfileScreen(
                                 selected = state.selectedDistanceUnit == "miles",
                                 onClick = { viewModel.onDistanceUnitToggled("miles") },
                                 label = { Text("MILES") },
+                                shape = RoundedCornerShape(8.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = ActionBlue,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Theme Selection
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = "App Theme", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                            Text(text = state.selectedThemeMode.title, fontSize = 11.sp, color = SurfaceDarkTextSec)
-                        }
-
-                        Row {
-                            FilterChip(
-                                selected = state.selectedThemeMode == ThemeMode.DARK,
-                                onClick = { viewModel.onThemeModeSelected(ThemeMode.DARK) },
-                                label = { Text("Dark") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = ActionBlue,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            FilterChip(
-                                selected = state.selectedThemeMode == ThemeMode.LIGHT,
-                                onClick = { viewModel.onThemeModeSelected(ThemeMode.LIGHT) },
-                                label = { Text("Light") }
                             )
                         }
                     }
@@ -360,16 +385,12 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Helmet Safety Reminder", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                            Text(text = "Prompt to wear helmet before ride launch", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                            Text(text = "Helmet Safety Reminder", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                            Text(text = "Prompt to wear helmet before ride launch", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(
                             checked = state.isHelmetReminderEnabled,
-                            onCheckedChange = { viewModel.onHelmetReminderToggled(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = SuccessGreen
-                            )
+                            onCheckedChange = { viewModel.onHelmetReminderToggled(it) }
                         )
                     }
 
@@ -382,94 +403,42 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Cluster Notifications", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                            Text(text = "Relay calls & SMS alerts to cluster display", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                            Text(text = "Cluster Notifications", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                            Text(text = "Relay calls & SMS alerts to cluster display", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(
                             checked = state.isNotificationsEnabled,
-                            onCheckedChange = { viewModel.onNotificationsToggled(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = SuccessGreen
-                            )
+                            onCheckedChange = { viewModel.onNotificationsToggled(it) }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // --- 4. Emergency Contacts Quick Summary Row ---
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDarkCard),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToSos() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = "SOS Contacts",
-                            tint = CriticalRed,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Emergency SOS & RSA",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Manage broadcast contacts & 24x7 RSA hotline",
-                                fontSize = 11.sp,
-                                color = SurfaceDarkTextSec
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Navigate to SOS",
-                        tint = SurfaceDarkTextSec,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- 5. Action Buttons ---
+            // --- Action Buttons ---
             Button(
                 onClick = { viewModel.saveChanges() },
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ActionBlue),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(50.dp)
             ) {
                 Text(
-                    text = if (state.isLoading) "SAVING..." else "SAVE CHANGES",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = if (state.isLoading) "SAVING..." else "SAVE PROFILE",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedButton(
                 onClick = { showResetConfirm = true },
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -482,19 +451,20 @@ fun ProfileScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "RESET TO FRESH APP (CLEAR PRELOADED DATA)",
+                    text = "RESET TO FRESH APP",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedButton(
                 onClick = { viewModel.openLogoutDialog() },
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = CriticalRed),
+                border = BorderStroke(1.dp, CriticalRed.copy(alpha = 0.5f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -508,7 +478,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "LOG OUT OF VEHICLE",
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = CriticalRed
                 )
@@ -525,8 +495,9 @@ fun ProfileScreen(
 
             AlertDialog(
                 onDismissRequest = { viewModel.closeAvatarPicker() },
-                containerColor = SurfaceDarkCard,
-                title = { Text("Select Avatar", color = Color.White, fontWeight = FontWeight.Bold) },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(20.dp),
+                title = { Text("Select Avatar", fontWeight = FontWeight.Bold) },
                 text = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -538,9 +509,9 @@ fun ProfileScreen(
                                 contentDescription = assetName,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
-                                    .size(68.dp)
+                                    .size(64.dp)
                                     .clip(CircleShape)
-                                    .border(2.dp, ActionBlue, CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                                     .clickable { viewModel.selectAvatar(assetName) }
                             )
                         }
@@ -548,7 +519,7 @@ fun ProfileScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.closeAvatarPicker() }) {
-                        Text("CLOSE", color = CyanAccent)
+                        Text("CLOSE")
                     }
                 }
             )
@@ -558,11 +529,14 @@ fun ProfileScreen(
         if (showResetConfirm) {
             AlertDialog(
                 onDismissRequest = { showResetConfirm = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(20.dp),
                 title = { Text("Reset to Fresh App?", fontWeight = FontWeight.Bold) },
                 text = {
                     Text(
-                        text = "This will wipe all preloaded demo notes, trips, documents, and vehicle telemetry to give you a 100% clean, fresh application.",
-                        fontSize = 13.sp
+                        text = "This will clear all preloaded demo data (trips, notes, documents, and vehicle status) so your app is completely fresh.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 confirmButton = {
@@ -593,12 +567,13 @@ fun ProfileScreen(
         if (state.isLogoutDialogOpen) {
             AlertDialog(
                 onDismissRequest = { viewModel.closeLogoutDialog() },
-                containerColor = SurfaceDarkCard,
-                title = { Text("Log Out?", color = Color.White, fontWeight = FontWeight.Bold) },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(20.dp),
+                title = { Text("Log Out?", fontWeight = FontWeight.Bold) },
                 text = {
                     Text(
                         text = "Logging out will disconnect your motorcycle cluster and require mobile OTP re-authentication.",
-                        color = SurfaceDarkTextSec,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 },
@@ -609,7 +584,7 @@ fun ProfileScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { viewModel.closeLogoutDialog() }) {
-                        Text("CANCEL", color = SurfaceDarkTextSec)
+                        Text("CANCEL")
                     }
                 }
             )

@@ -15,28 +15,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import com.openride.companion.model.ThemeMode
+
 /**
  * Authentic Bajaj Ride Connect Theme.
  *
  * Implements the brand design system derived from the original Bajaj Ride Connect APK.
- * Defaults to dark theme with brand navy and high-contrast automotive styling.
+ * Seamlessly integrates Material You dynamic wallpaper colors, Stock Android 16 styling,
+ * and user-selected ThemeMode (System, Light, Dark).
  */
 @Composable
 fun BajajTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true, // Enabled by default to sample Android 12+ wallpaper colors
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    val systemInDark = isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        ThemeMode.SYSTEM -> systemInDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> BajajDarkColorScheme
+        isDark -> BajajDarkColorScheme
         else -> BajajLightColorScheme
     }
 
-    val customColors = if (darkTheme) DarkCustomColors else LightCustomColors
+    val customColors = if (isDark) DarkCustomColors else LightCustomColors
     val automotiveTypography = BajajAutomotiveTypography()
     val customShapes = BajajCustomShapes()
 
@@ -48,8 +59,8 @@ fun BajajTheme(
             window.navigationBarColor = colorScheme.background.toArgb()
 
             val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
+            insetsController.isAppearanceLightStatusBars = !isDark
+            insetsController.isAppearanceLightNavigationBars = !isDark
         }
     }
 

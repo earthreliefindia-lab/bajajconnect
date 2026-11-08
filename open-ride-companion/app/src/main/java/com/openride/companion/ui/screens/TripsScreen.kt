@@ -199,8 +199,8 @@ fun TripsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = ElevatedNavy),
-                border = BorderStroke(1.dp, SurfaceDarkBorder)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Row(
                     modifier = Modifier
@@ -209,16 +209,16 @@ fun TripsScreen(
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "%.1f km".format(totalDistance), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = CyanAccent)
-                        Text(text = "Total Distance", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                        Text(text = "%.1f km".format(totalDistance), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(text = "Total Distance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "${trips.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text(text = "Recorded Rides", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                        Text(text = "${trips.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = "Recorded Rides", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(text = "%.1f km/h".format(maxSpeed), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E))
-                        Text(text = "Top Speed", fontSize = 11.sp, color = SurfaceDarkTextSec)
+                        Text(text = "Top Speed", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -289,8 +289,8 @@ fun TripCardItem(trip: TripRecord, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ElevatedNavy),
-        border = BorderStroke(1.dp, SurfaceDarkBorder)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -298,13 +298,13 @@ fun TripCardItem(trip: TripRecord, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = trip.dateFormatted, color = SurfaceDarkTextSec, fontSize = 12.sp)
-                Icon(Icons.Default.ChevronRight, contentDescription = "View", tint = SurfaceDarkTextSec, modifier = Modifier.size(20.dp))
+                Text(text = trip.dateFormatted, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Icon(Icons.Default.ChevronRight, contentDescription = "View", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = trip.title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -328,7 +328,7 @@ fun TripCardItem(trip: TripRecord, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${trip.startLocationName} → ${trip.endLocationName}",
-                    color = SurfaceDarkTextSec,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -341,8 +341,8 @@ fun TripCardItem(trip: TripRecord, onClick: () -> Unit) {
 @Composable
 fun MetricChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, color = CyanAccent, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-        Text(text = label, color = SurfaceDarkTextSec, fontSize = 10.sp)
+        Text(text = value, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
     }
 }
 
@@ -351,8 +351,8 @@ fun CuratedTourCard(tour: CuratedTour) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ElevatedNavy),
-        border = BorderStroke(1.dp, SurfaceDarkBorder)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -362,7 +362,7 @@ fun CuratedTourCard(tour: CuratedTour) {
             ) {
                 Text(
                     text = tour.subtitle,
-                    color = CyanAccent,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -395,14 +395,14 @@ fun CuratedTourCard(tour: CuratedTour) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = tour.title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = tour.description,
-                color = SurfaceDarkTextSec,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -413,8 +413,8 @@ fun CuratedTourCard(tour: CuratedTour) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "%.0f km • %.1f hrs".format(tour.distanceKm, tour.estimatedDurationHours), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                Text(text = "${tour.startCity} → ${tour.destinationCity}", color = SurfaceDarkTextSec, fontSize = 12.sp)
+                Text(text = "%.0f km • %.1f hrs".format(tour.distanceKm, tour.estimatedDurationHours), color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(text = "${tour.startCity} → ${tour.destinationCity}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
         }
     }

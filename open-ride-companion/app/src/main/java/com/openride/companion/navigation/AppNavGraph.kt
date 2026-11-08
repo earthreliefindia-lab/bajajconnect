@@ -64,7 +64,6 @@ fun AppNavGraph(
     authRepository: AuthRepository,
     vehicleRepository: VehicleRepository,
     profileRepository: ProfileRepository,
-    sosRepository: EmergencySosRepository,
     tripRepository: TripRepository = remember { DefaultTripRepository() },
     documentRepository: DocumentLockerRepository = remember { DefaultDocumentLockerRepository() },
     navigationManager: NavigationManager = remember { NavigationManager() }
@@ -98,7 +97,6 @@ fun AppNavGraph(
     val isMainTabScreen = currentScreen is Screen.Garage ||
             currentScreen is Screen.Navigation ||
             currentScreen is Screen.Trips ||
-            currentScreen is Screen.Sos ||
             currentScreen is Screen.Profile
 
     Scaffold(
@@ -150,18 +148,6 @@ fun AppNavGraph(
                         },
                         icon = { Icon(Icons.Default.Route, contentDescription = "Trips") },
                         label = { Text("Trips", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Trips) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
-                        colors = navItemColors
-                    )
-
-                    NavigationBarItem(
-                        selected = currentScreen is Screen.Sos,
-                        onClick = {
-                            if (currentScreen !is Screen.Sos) {
-                                navigateTo(Screen.Sos)
-                            }
-                        },
-                        icon = { Icon(Icons.Default.Security, contentDescription = "Emergency SOS") },
-                        label = { Text("SOS", fontSize = 11.sp, fontWeight = if (currentScreen is Screen.Sos) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
                         colors = navItemColors
                     )
 
@@ -226,7 +212,6 @@ fun AppNavGraph(
                     GarageScreen(
                         viewModel = viewModel,
                         onNavigateToProfile = { navigateTo(Screen.Profile) },
-                        onNavigateToSos = { navigateTo(Screen.Sos) },
                         onNavigateToNotes = { navigateTo(Screen.RideNotes) },
                         onNavigateToDocs = { navigateTo(Screen.DocumentLocker) }
                     )
@@ -276,7 +261,6 @@ fun AppNavGraph(
                         vehicleRepository = vehicleRepository,
                         tripRepository = tripRepository,
                         documentRepository = documentRepository,
-                        onNavigateToSos = { navigateTo(Screen.Sos) },
                         onNavigateToAuth = {
                             navigateTo(Screen.Login, clearStack = true)
                         }
@@ -284,11 +268,8 @@ fun AppNavGraph(
                 }
 
                 is Screen.Sos -> {
-                    val viewModel = remember { SosViewModel(sosRepository, profileRepository) }
-                    SosScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = { navigateBack() }
-                    )
+                    // SOS removed per user request: redirect to Garage
+                    navigateTo(Screen.Garage, clearStack = true)
                 }
             }
         }
