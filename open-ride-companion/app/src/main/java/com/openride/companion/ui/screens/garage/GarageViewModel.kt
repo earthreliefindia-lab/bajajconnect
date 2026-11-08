@@ -153,4 +153,10 @@ class GarageViewModel(
             )
         }
     }
+
+    fun resetToFresh() {
+        viewModelScope.launch {
+            vehicleRepository.resetToFresh()
+        }
+    }
 }

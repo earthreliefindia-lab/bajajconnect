@@ -200,14 +200,14 @@ class VehicleRepositoryImpl : VehicleRepository {
 
     override suspend fun resetToFresh(): Result<Unit> {
         val freshBike = Vehicle(
-            id = "BIKE_PULSAR_N160",
+            id = "BIKE_PULSAR_00JR33BT",
             vin = "MD2A11CY4P8710001",
             registrationNumber = "MH 12 TC 0001",
-            modelSpec = GarageCatalog.PULSAR_N160,
+            modelSpec = GarageCatalog.PULSAR_N160.copy(clusterHardware = "00JR33BT"),
             odometerKm = 0,
-            fuelLevelPercentage = 100,
-            batteryLevelPercentage = 100,
-            batteryVoltage12V = 12.8f,
+            fuelLevelPercentage = 0,
+            batteryLevelPercentage = 0,
+            batteryVoltage12V = 0.0f,
             isActive = true
         )
         _vehiclesState.value = listOf(freshBike)

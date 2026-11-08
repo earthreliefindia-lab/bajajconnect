@@ -1,6 +1,8 @@
 package com.openride.companion.ui.screens
 
 import android.annotation.SuppressLint
+import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -13,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Tune
@@ -30,7 +33,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.openride.companion.location.ParsedDestination
 import org.json.JSONArray
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
 fun NavigationMapView(
     userLatitude: Double?,
@@ -39,6 +42,7 @@ fun NavigationMapView(
     routeCoordinates: List<Pair<Double, Double>>,
     mapplsApiKey: String = "",
     onConfigureMapplsClick: () -> Unit = {},
+    onFetchCurrentLocation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
@@ -72,15 +76,37 @@ fun NavigationMapView(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    isClickable = true
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
+                        databaseEnabled = true
                         allowFileAccess = false
                         cacheMode = WebSettings.LOAD_DEFAULT
                         useWideViewPort = true
                         loadWithOverviewMode = true
+                        setSupportZoom(true)
+                        builtInZoomControls = false
+                        displayZoomControls = false
                     }
                     setBackgroundColor(if (isDark) 0xFF121418.toInt() else 0xFFF1F3F4.toInt())
+
+                    // Fix Android Compose gesture interception: Disallow parent intercept on touch
+                    setOnTouchListener { v, event ->
+                        when (event.actionMasked) {
+                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                                v.parent?.requestDisallowInterceptTouchEvent(true)
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                v.parent?.requestDisallowInterceptTouchEvent(false)
+                            }
+                        }
+                        v.onTouchEvent(event)
+                    }
 
                     webChromeClient = WebChromeClient()
                     webViewClient = object : WebViewClient() {
@@ -147,7 +173,7 @@ fun NavigationMapView(
             // Mappls Mode Indicator Pill
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
                 shadowElevation = 4.dp
             ) {
                 Row(
@@ -162,7 +188,7 @@ fun NavigationMapView(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (mapplsApiKey.isBlank()) "Mappls Free" else "Mappls Pro",
+                        text = if (mapplsApiKey.isBlank()) "Mappls / OSM" else "Mappls Official",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -206,21 +232,22 @@ fun NavigationMapView(
                 Icon(Icons.Default.Remove, contentDescription = "Zoom Out", modifier = Modifier.size(20.dp))
             }
 
-            // My Location Button
+            // 1-Tap Fetch Current Location Button (Prominent Primary Action)
             FloatingActionButton(
                 onClick = {
+                    onFetchCurrentLocation()
                     if (userLatitude != null && userLongitude != null) {
                         webViewInstance?.evaluateJavascript("updateUserLocation($userLatitude, $userLongitude, 0);", null)
                         webViewInstance?.evaluateJavascript("centerOnUser();", null)
                     }
                 },
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(52.dp),
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 elevation = FloatingActionButtonDefaults.elevation(6.dp)
             ) {
-                Icon(Icons.Default.MyLocation, contentDescription = "My Location", modifier = Modifier.size(22.dp))
+                Icon(Icons.Default.MyLocation, contentDescription = "Fetch Current Location", modifier = Modifier.size(24.dp))
             }
         }
     }
@@ -228,9 +255,9 @@ fun NavigationMapView(
 
 private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
     val defaultFreeUrl = if (isDark) {
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
     } else {
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     }
     val activeTileUrl = if (apiKey.isNotBlank()) {
         "https://apis.mappls.com/advancedmaps/v1/$apiKey/still_image?center={lat},{lon}&zoom={z}"
@@ -257,42 +284,45 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                     margin: 0;
                     padding: 0;
                     background-color: $bgColor;
+                    touch-action: pan-x pan-y pinch-zoom;
+                    -webkit-user-select: none;
+                    user-select: none;
                 }
                 .leaflet-control-attribution {
                     display: none !important;
                 }
                 /* Pulsing Motorcycle Rider Marker */
                 .bike-rider-marker {
-                    width: 32px;
-                    height: 32px;
+                    width: 34px;
+                    height: 34px;
                     background: #1A73E8;
-                    border: 2px solid #FFFFFF;
+                    border: 2.5px solid #FFFFFF;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0 12px rgba(26, 115, 232, 0.7);
+                    box-shadow: 0 0 14px rgba(26, 115, 232, 0.8);
                     animation: bikePulse 2s infinite;
                 }
                 .bike-rider-marker svg {
-                    width: 18px;
-                    height: 18px;
+                    width: 20px;
+                    height: 20px;
                     fill: #FFFFFF;
                 }
                 @keyframes bikePulse {
                     0% { transform: scale(0.96); box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.6); }
-                    70% { transform: scale(1.04); box-shadow: 0 0 0 12px rgba(26, 115, 232, 0); }
+                    70% { transform: scale(1.04); box-shadow: 0 0 0 14px rgba(26, 115, 232, 0); }
                     100% { transform: scale(0.96); box-shadow: 0 0 0 0 rgba(26, 115, 232, 0); }
                 }
-                /* Mappls Destination Pin */
+                /* Destination Pin */
                 .mappls-dest-pin {
-                    width: 28px;
-                    height: 28px;
+                    width: 30px;
+                    height: 30px;
                     background: #EA4335;
                     border: 2.5px solid #FFFFFF;
                     border-radius: 50% 50% 50% 0;
                     transform: rotate(-45deg);
-                    box-shadow: 0 2px 8px rgba(234, 67, 53, 0.6);
+                    box-shadow: 0 2px 10px rgba(234, 67, 53, 0.6);
                 }
             </style>
         </head>
@@ -310,12 +340,13 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                     touchZoom: true,
                     scrollWheelZoom: true,
                     doubleClickZoom: true,
-                    boxZoom: false
-                }).setView([18.5204, 73.8567], 14);
+                    boxZoom: false,
+                    tap: false // Crucial for responsive touch drag on modern Android WebViews
+                }).setView([18.5204, 73.8567], 15);
 
                 var mainTileLayer = L.tileLayer(activeTileUrl, {
                     maxZoom: 19,
-                    subdomains: isCustom ? '' : 'abcd'
+                    subdomains: isCustom ? '' : 'abc'
                 }).addTo(map);
 
                 if (isCustom) {
@@ -323,7 +354,7 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                         map.removeLayer(mainTileLayer);
                         L.tileLayer(defaultFreeUrl, {
                             maxZoom: 19,
-                            subdomains: 'abcd'
+                            subdomains: 'abc'
                         }).addTo(map);
                     });
                 }
@@ -338,15 +369,15 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                 var bikeIcon = L.divIcon({
                     className: 'bike-marker-wrapper',
                     html: '<div class="bike-rider-marker"><svg viewBox="0 0 24 24"><path d="M19 17c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3m0-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1M5 17c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3m0-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1m14.5-8H16l-2.7 4.1-1.3-2.1H14V5H9v2h2.2l2.3 3.7L10.7 15H7.8c-.4-1.2-1.5-2-2.8-2H5c-1.7 0-3 1.3-3 3s1.3 3 3 3c1.3 0 2.4-.8 2.8-2h3.9l3.5-5.5 2.1 3.5h1.7c.4 1.2 1.5 2 2.8 2 1.7 0 3-1.3 3-3s-1.3-3-3-3h-.8l2.2-3.8c.2-.4 0-.9-.4-1.1-.1-.1-.3-.1-.4-.1z"/></svg></div>',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17]
                 });
 
                 var destIcon = L.divIcon({
                     className: 'dest-marker-wrapper',
                     html: '<div class="mappls-dest-pin"></div>',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 28]
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
                 });
 
                 function updateUserLocation(lat, lng, heading) {
@@ -354,9 +385,15 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                     currentLng = lng;
                     if (!userMarker) {
                         userMarker = L.marker([lat, lng], { icon: bikeIcon }).addTo(map);
-                        map.setView([lat, lng], 15);
+                        map.setView([lat, lng], 16);
                     } else {
                         userMarker.setLatLng([lat, lng]);
+                    }
+                }
+
+                function centerOnUser() {
+                    if (userMarker) {
+                        map.flyTo([currentLat, currentLng], 16, { animate: true, duration: 0.8 });
                     }
                 }
 
@@ -400,23 +437,18 @@ private fun getMapplsStyleMapHtml(apiKey: String, isDark: Boolean): String {
                         lineCap: 'round'
                     }).addTo(map);
 
-                    var bounds = L.latLngBounds(coordinates);
-                    map.fitBounds(bounds, { padding: [40, 40] });
+                    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
                 }
 
                 function clearRoute() {
-                    if (routeGlow) {
-                        map.removeLayer(routeGlow);
-                        routeGlow = null;
-                    }
                     if (routePolyline) {
                         map.removeLayer(routePolyline);
                         routePolyline = null;
                     }
-                }
-
-                function centerOnUser() {
-                    map.flyTo([currentLat, currentLng], 16, { animate: true, duration: 0.8 });
+                    if (routeGlow) {
+                        map.removeLayer(routeGlow);
+                        routeGlow = null;
+                    }
                 }
             </script>
         </body>

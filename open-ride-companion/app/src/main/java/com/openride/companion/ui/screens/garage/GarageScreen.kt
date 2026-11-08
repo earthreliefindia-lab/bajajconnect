@@ -881,8 +881,16 @@ fun GarageScreen(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.closeManageBikesDialog() }) {
-                        Text("DONE", fontWeight = FontWeight.Bold)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { viewModel.resetToFresh() }) {
+                            Text("CLEAR PREFILLED", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        TextButton(onClick = { viewModel.closeManageBikesDialog() }) {
+                            Text("DONE", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             )

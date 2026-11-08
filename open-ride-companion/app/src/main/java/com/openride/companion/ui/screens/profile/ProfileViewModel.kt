@@ -19,13 +19,18 @@ data class ProfileUiState(
     val profile: RiderProfile? = null,
     val isAvatarPickerOpen: Boolean = false,
     val isLogoutDialogOpen: Boolean = false,
+    val isBajajVerifyDialogOpen: Boolean = false,
+    val isOtpSent: Boolean = false,
+    val otpInput: String = "",
+    val phoneInput: String = "",
+    val otpError: String? = null,
     val nameInput: String = "",
     val nameError: String? = null,
     val emailInput: String = "",
     val emailError: String? = null,
     val selectedBloodGroup: String = "O+",
     val selectedDistanceUnit: String = "km",
-    val selectedThemeMode: ThemeMode = ThemeMode.DARK,
+    val selectedThemeMode: ThemeMode = ThemeMode.SYSTEM,
     val isHelmetReminderEnabled: Boolean = true,
     val isNotificationsEnabled: Boolean = true,
     val isSaveSuccessBannerVisible: Boolean = false
@@ -47,6 +52,7 @@ class ProfileViewModel(
                 profile = profile,
                 nameInput = profile.riderName,
                 emailInput = profile.email,
+                phoneInput = profile.phoneNumber,
                 selectedBloodGroup = profile.bloodGroup,
                 selectedDistanceUnit = profile.preferredDistanceUnit,
                 selectedThemeMode = profile.themeOverride,
@@ -68,6 +74,7 @@ class ProfileViewModel(
                         profile = profile,
                         nameInput = profile.riderName,
                         emailInput = profile.email,
+                        phoneInput = profile.phoneNumber,
                         selectedBloodGroup = profile.bloodGroup,
                         selectedDistanceUnit = profile.preferredDistanceUnit,
                         selectedThemeMode = profile.themeOverride,
@@ -96,6 +103,14 @@ class ProfileViewModel(
                 emailError = if (!RiderProfile.isValidEmail(newEmail.trim())) "Enter a valid email address" else null
             )
         }
+    }
+
+    fun onPhoneChange(phone: String) {
+        _uiState.update { it.copy(phoneInput = phone) }
+    }
+
+    fun onOtpChange(otp: String) {
+        _uiState.update { it.copy(otpInput = otp, otpError = null) }
     }
 
     fun onBloodGroupSelected(group: String) {
@@ -130,6 +145,87 @@ class ProfileViewModel(
         }
     }
 
+    fun selectCustomAvatar(uriString: String) {
+        viewModelScope.launch {
+            repository.updateCustomAvatar(uriString)
+            closeAvatarPicker()
+        }
+    }
+
+    fun openBajajVerifyDialog() {
+        _uiState.update {
+            it.copy(
+                isBajajVerifyDialogOpen = true,
+                isOtpSent = false,
+                otpInput = "",
+                otpError = null,
+                phoneInput = it.profile?.phoneNumber ?: ""
+            )
+        }
+    }
+
+    fun closeBajajVerifyDialog() {
+        _uiState.update { it.copy(isBajajVerifyDialogOpen = false) }
+    }
+
+    fun requestBajajOtp() {
+        val phone = _uiState.value.phoneInput
+        if (phone.filter { it.isDigit() }.length < 10) {
+            _uiState.update { it.copy(otpError = "Enter a valid 10-digit mobile number") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, otpError = null) }
+            val res = repository.sendBajajOtp(phone)
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isOtpSent = res.isSuccess,
+                    otpError = if (res.isFailure) res.exceptionOrNull()?.message else null
+                )
+            }
+        }
+    }
+
+    fun submitBajajOtp() {
+        val phone = _uiState.value.phoneInput
+        val otp = _uiState.value.otpInput
+        if (otp.length < 4) {
+            _uiState.update { it.copy(otpError = "Enter 4 or 6-digit OTP") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, otpError = null) }
+            val res = repository.verifyBajajOtp(phone, otp)
+            if (res.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isBajajVerifyDialogOpen = false,
+                        otpError = null
+                    )
+                }
+                _eventFlow.emit(ProfileUiEvent.ShowToast("Bajaj Account Verified!"))
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        otpError = res.exceptionOrNull()?.message ?: "OTP verification failed"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearAllData() {
+        viewModelScope.launch {
+            repository.clearAllData()
+            _eventFlow.emit(ProfileUiEvent.ShowToast("All cached data cleared"))
+        }
+    }
+
     fun openLogoutDialog() { _uiState.update { it.copy(isLogoutDialogOpen = true) } }
     fun closeLogoutDialog() { _uiState.update { it.copy(isLogoutDialogOpen = false) } }
 
@@ -149,6 +245,7 @@ class ProfileViewModel(
         val updated = baseProfile.copy(
             riderName = formattedName,
             email = current.emailInput,
+            phoneNumber = current.phoneInput,
             bloodGroup = current.selectedBloodGroup,
             preferredDistanceUnit = current.selectedDistanceUnit,
             themeOverride = current.selectedThemeMode,
@@ -157,25 +254,25 @@ class ProfileViewModel(
         )
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             val result = repository.updateProfile(updated)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isSaveSuccessBannerVisible = result.isSuccess
-                )
-            }
             if (result.isSuccess) {
-                _eventFlow.emit(ProfileUiEvent.ShowToast("Profile updated successfully"))
+                repository.setPreferredUnit(current.selectedDistanceUnit)
+                repository.setHelmetReminder(current.isHelmetReminderEnabled)
+                repository.setThemeMode(current.selectedThemeMode)
+                _uiState.update { it.copy(isSaveSuccessBannerVisible = true) }
             }
         }
     }
 
-    fun confirmLogout(onNavigateToAuth: () -> Unit) {
+    fun dismissSuccessBanner() {
+        _uiState.update { it.copy(isSaveSuccessBannerVisible = false) }
+    }
+
+    fun confirmLogout() {
         viewModelScope.launch {
-            closeLogoutDialog()
             repository.logout()
-            onNavigateToAuth()
+            closeLogoutDialog()
+            _eventFlow.emit(ProfileUiEvent.NavigateToAuth)
         }
     }
 }

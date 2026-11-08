@@ -117,6 +117,28 @@ fun NavigationScreen(
         }
     }
 
+    // Function to fetch fresh GPS/Network location immediately on 1 tap
+    fun fetchFreshLocation() {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        var freshLoc: Location? = null
+        try {
+            freshLoc = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                ?: locationManager?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+        } catch (_: SecurityException) {}
+
+        if (freshLoc != null) {
+            userLocation = freshLoc
+            android.widget.Toast.makeText(
+                context,
+                "📍 Location locked: ${String.format(java.util.Locale.US, "%.4f, %.4f", freshLoc.latitude, freshLoc.longitude)}",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            android.widget.Toast.makeText(context, "Fetching latest GPS fix...", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // Function to calculate route & set destination
     fun selectDestination(dest: ParsedDestination) {
         currentDestination = dest
@@ -187,6 +209,7 @@ fun NavigationScreen(
             routeCoordinates = routeCoordinates,
             mapplsApiKey = mapplsApiKey,
             onConfigureMapplsClick = { showMapplsDialog = true },
+            onFetchCurrentLocation = { fetchFreshLocation() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -256,7 +279,19 @@ fun NavigationScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = { fetchFreshLocation() },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MyLocation,
+                                    contentDescription = "Current Location",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = {

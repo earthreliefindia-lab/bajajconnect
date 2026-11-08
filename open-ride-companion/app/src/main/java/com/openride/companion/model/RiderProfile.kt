@@ -11,8 +11,10 @@ data class RiderProfile(
     val phoneNumber: String,
     val bloodGroup: String,
     val avatarAsset: String = "avatar_profile_default.png",
+    val customImageUri: String? = null,
+    val isBajajVerified: Boolean = false,
     val preferredDistanceUnit: String = "km", // "km" or "miles"
-    val themeOverride: ThemeMode = ThemeMode.DARK,
+    val themeOverride: ThemeMode = ThemeMode.SYSTEM,
     val helmetReminderEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val callSmsAlertsEnabled: Boolean = true,
